@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$if(pagetitle)$$pagetitle$$else$$title$$endif$</title>
+  <style>
+$highlighting-css$
+  </style>
+$for(css)$
+  <link rel="stylesheet" href="$css$">
+$endfor$
+$if(interlude-offset)$
+  <style>body { counter-reset: workshop interlude $interlude-offset$; }</style>
+$endif$
+</head>
+<body class="$if(variant)$$variant$$endif$">
+
+<section class="cover">
+  <div class="cover-mark">fn&nbsp;main()</div>
+  <h1 class="cover-title">$title$</h1>
+$if(subtitle)$
+  <p class="cover-subtitle">$subtitle$</p>
+$endif$
+$if(volume)$
+  <p class="cover-volume">$volume$</p>
+$endif$
+  <div class="cover-rule"></div>
+$if(author)$
+  <p class="cover-author">$for(author)$$author$$sep$ · $endfor$</p>
+$endif$
+$if(date)$
+  <p class="cover-date">$date$</p>
+$endif$
+</section>
+
+$if(toc)$
+<nav class="toc" id="toc">
+  <h2 class="toc-heading">Contents</h2>
+$table-of-contents$
+</nav>
+$endif$
+
+<main class="book">
+$body$
+</main>
+
+<script src="vendor/mermaid.min.js"></script>
+<script>
+  // Render every diagram, then flag completion so the PDF printer can wait.
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "loose",
+    theme: "base",
+    fontFamily: "Inter, -apple-system, 'Helvetica Neue', Arial, sans-serif",
+    themeVariables: {
+      primaryColor: "#fdf1ea",
+      primaryBorderColor: "#ce422b",
+      primaryTextColor: "#1f1d2b",
+      secondaryColor: "#eef3fb",
+      secondaryBorderColor: "#3d6bb3",
+      tertiaryColor: "#f4f1f8",
+      tertiaryBorderColor: "#7a5ea8",
+      lineColor: "#5b5868",
+      textColor: "#1f1d2b",
+      noteBkgColor: "#fff8e1",
+      noteBorderColor: "#d9a400",
+      edgeLabelBackground: "#fcfbfd",
+      fontSize: "14px"
+    },
+    flowchart: { htmlLabels: true, curve: "basis" },
+    sequence: { mirrorActors: false }
+  });
+  mermaid.run({ querySelector: "pre.mermaid" })
+    .catch(function (e) { console.error(e); })
+    .finally(function () { document.body.setAttribute("data-diagrams", "done"); });
+</script>
+</body>
+</html>

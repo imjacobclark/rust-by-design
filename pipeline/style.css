@@ -1,0 +1,362 @@
+/* ==========================================================================
+   Rust by Design — print stylesheet (rendered by headless Chrome)
+   ========================================================================== */
+
+@font-face { font-family: "Source Serif 4"; font-weight: 400; font-style: normal; src: url(vendor/fonts/serif-400.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 400; font-style: italic; src: url(vendor/fonts/serif-400i.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 600; font-style: normal; src: url(vendor/fonts/serif-600.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 600; font-style: italic; src: url(vendor/fonts/serif-600i.woff2) format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-weight: 700; font-style: normal; src: url(vendor/fonts/serif-700.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 400; src: url(vendor/fonts/inter-400.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 500; src: url(vendor/fonts/inter-500.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url(vendor/fonts/inter-600.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 700; src: url(vendor/fonts/inter-700.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 800; src: url(vendor/fonts/inter-800.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-style: normal; src: url(vendor/fonts/jbmono-400.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-style: italic; src: url(vendor/fonts/jbmono-400i.woff2) format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 700; font-style: normal; src: url(vendor/fonts/jbmono-700.woff2) format("woff2"); }
+
+:root {
+  --ink: #1f1d2b;
+  --ink-soft: #4a4757;
+  --muted: #7a7787;
+  --rule: #e4e1ea;
+  --paper: #ffffff;
+  --rust: #ce422b;
+  --rust-deep: #a3321f;
+  --code-bg: #1e1e2e;
+  --code-fg: #cdd6f4;
+  --code-label: #a6adc8;
+  --inline-code-bg: #f3f0f7;
+  --inline-code-fg: #6b2fa0;
+
+  --note: #3d6bb3;      --note-bg: #eef3fb;
+  --tip: #2f8a5b;       --tip-bg: #ecf7f0;
+  --important: #7a5ea8; --important-bg: #f4f0fa;
+  --warning: #b77900;   --warning-bg: #fff7e6;
+  --caution: #c0392b;   --caution-bg: #fdeeec;
+  --pattern: #ce422b;   --pattern-bg: #fdf1ea;
+  --exercise: #0f7c8c;  --exercise-bg: #e9f6f8;
+  --checkpoint: #4a4757;--checkpoint-bg: #f5f4f7;
+
+  --serif: "Source Serif 4", Charter, "Iowan Old Style", Georgia, serif;
+  --sans: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ------------------------------------------------------------------ pages */
+
+@page {
+  size: A4;
+  margin: 22mm 20mm 24mm 20mm;
+  @bottom-left {
+    content: "Rust by Design";
+    font-family: Inter, sans-serif; font-size: 8pt; color: #9a97a6;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  @bottom-right {
+    content: counter(page);
+    font-family: Inter, sans-serif; font-size: 9pt; font-weight: 600; color: #ce422b;
+  }
+}
+@page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+@page part  { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 10.5pt;
+  line-height: 1.58;
+  hyphens: auto;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+
+/* ------------------------------------------------------------------ cover */
+
+.cover {
+  page: cover;
+  break-after: page;
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 70mm 22mm 0 24mm;
+  background:
+    radial-gradient(circle at 85% 12%, rgba(206, 66, 43, 0.35), transparent 42%),
+    radial-gradient(circle at 10% 95%, rgba(122, 94, 168, 0.30), transparent 45%),
+    #17151f;
+  color: #f4f1ea;
+  position: relative;
+}
+.cover-mark {
+  font-family: var(--mono); font-size: 11pt; color: #f38ba8;
+  letter-spacing: 0.08em; margin-bottom: 14mm;
+}
+.cover-title {
+  font-family: var(--sans); font-weight: 800; font-size: 46pt; line-height: 1.02;
+  letter-spacing: -0.03em; margin: 0; color: #fff; break-before: avoid;
+}
+.cover-subtitle {
+  font-family: var(--serif); font-style: italic; font-size: 17pt; line-height: 1.35;
+  color: #d9d4e6; max-width: 140mm; margin: 8mm 0 0;
+}
+.cover-volume {
+  font-family: var(--sans); font-weight: 600; font-size: 11pt; color: #fab387;
+  text-transform: uppercase; letter-spacing: 0.12em; margin-top: 10mm;
+}
+.cover-rule { width: 28mm; height: 2.2mm; background: var(--rust); margin: 18mm 0 6mm; }
+.cover-author, .cover-date { font-family: var(--sans); font-size: 10pt; color: #b9b4c8; margin: 1mm 0; }
+
+/* ------------------------------------------------------------------ contents */
+
+.toc { break-after: page; font-family: var(--sans); }
+.toc-heading {
+  font-family: var(--sans); font-weight: 800; font-size: 26pt; letter-spacing: -0.02em;
+  margin: 0 0 8mm; color: var(--ink);
+}
+.toc ul { list-style: none; padding-left: 0; margin: 0; }
+.toc > ul > li { margin: 0; }
+.toc li a { color: var(--ink); text-decoration: none; }
+.toc > ul > li > a { display: block; font-weight: 600; font-size: 10.5pt; padding: 1.6mm 0 0.6mm; }
+.toc ul ul { padding-left: 7mm; margin-bottom: 1mm; }
+.toc ul ul li { font-size: 8.8pt; color: var(--ink-soft); line-height: 1.5; }
+.toc ul ul li a { color: var(--ink-soft); }
+.toc ul ul ul { display: none; }
+.toc .toc-section-number {
+  display: inline-block; min-width: 9mm; color: var(--rust); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.toc ul ul .toc-section-number { min-width: 11mm; color: var(--muted); font-weight: 500; }
+/* Part entries stand out in the contents */
+.toc > ul > li > a:has(.part-kicker) {
+  margin-top: 6mm; padding: 2mm 0 2mm 3mm; border-left: 1.2mm solid var(--rust);
+  text-transform: uppercase; letter-spacing: 0.06em; font-size: 9.5pt; font-weight: 800;
+}
+.toc li { break-inside: avoid; }
+
+/* ------------------------------------------------------------------ headings */
+
+h1, h2, h3, h4 { font-family: var(--sans); color: var(--ink); break-after: avoid; line-height: 1.2; }
+body { counter-reset: workshop interlude; }
+h1.chapter, h1.appendix, h1.frontmatter, h1.workshop, h1.interlude {
+  break-before: page;
+  font-size: 27pt; font-weight: 800; letter-spacing: -0.025em;
+  margin: 18mm 0 10mm; padding-top: 4mm;
+}
+h1.chapter .header-section-number {
+  display: block; font-size: 10pt; font-weight: 700; letter-spacing: 0.16em;
+  color: var(--rust); text-transform: uppercase; margin-bottom: 4mm;
+}
+h1.chapter .header-section-number::before { content: "Chapter "; }
+h1.workshop { counter-increment: workshop; }
+h1.workshop::before {
+  content: "Workshop " counter(workshop); display: block; font-size: 10pt; font-weight: 700;
+  letter-spacing: 0.16em; color: var(--exercise); text-transform: uppercase; margin-bottom: 4mm;
+}
+h1.interlude { counter-increment: interlude; }
+h1.interlude::before {
+  content: "TLA+ Interlude " counter(interlude); display: block; font-size: 10pt; font-weight: 700;
+  letter-spacing: 0.16em; color: var(--important); text-transform: uppercase; margin-bottom: 4mm;
+}
+h1.interlude .interlude-tag { display: none; }
+.toc .interlude-tag {
+  display: inline-block; font-size: 6.8pt; font-weight: 700; letter-spacing: 0.06em;
+  color: #fff; background: var(--important); border-radius: 1mm; padding: 0.2mm 1.2mm;
+  margin-right: 1.5mm; vertical-align: 1px;
+}
+h1.interlude::after { background: var(--important) !important; }
+h1.chapter::after, h1.appendix::after, h1.frontmatter::after, h1.workshop::after, h1.interlude::after {
+  content: ""; display: block; width: 22mm; height: 1.6mm; background: var(--rust); margin-top: 6mm;
+}
+
+/* Part dividers: a full dark page */
+.part-page {
+  page: part;
+  break-before: page; break-after: page;
+  height: 297mm; box-sizing: border-box; margin: 0;
+  padding: 100mm 24mm 0;
+  background:
+    radial-gradient(circle at 90% 85%, rgba(206, 66, 43, 0.38), transparent 45%),
+    radial-gradient(circle at 5% 5%, rgba(122, 94, 168, 0.22), transparent 40%),
+    #17151f;
+  color: #fff;
+}
+h1.part {
+  margin: 0; color: #fff; font-size: 34pt; font-weight: 800;
+  letter-spacing: -0.02em; line-height: 1.1;
+}
+.part-kicker {
+  display: block; font-family: var(--mono); font-size: 11pt; font-weight: 400;
+  color: #fab387; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6mm;
+}
+.part-lede {
+  font-family: var(--serif); font-style: italic; font-size: 13pt; line-height: 1.5;
+  color: #c9c3d8; margin-top: 12mm; max-width: 135mm;
+}
+.part-lede::before {
+  content: ""; display: block; width: 22mm; height: 1.6mm; background: var(--rust); margin-bottom: 10mm;
+}
+.toc .part-kicker { display: inline; font-family: inherit; font-size: inherit; color: var(--rust);
+  letter-spacing: inherit; margin: 0 2mm 0 0; }
+.toc .part-kicker::after { content: " ·"; color: var(--muted); }
+
+h2 {
+  font-size: 15.5pt; font-weight: 700; letter-spacing: -0.01em;
+  margin: 9mm 0 3mm; padding-top: 1mm;
+}
+h2 .header-section-number { color: var(--rust); margin-right: 2.5mm; font-weight: 700; }
+h3 { font-size: 12pt; font-weight: 700; margin: 6mm 0 2mm; color: var(--ink); }
+h3 .header-section-number { color: var(--muted); margin-right: 2mm; font-weight: 600; }
+h4 { font-size: 10.5pt; font-weight: 700; margin: 5mm 0 1.5mm; color: var(--ink-soft); }
+
+/* ------------------------------------------------------------------ prose */
+
+p { margin: 0 0 3.2mm; orphans: 3; widows: 3; }
+a { color: var(--rust-deep); text-decoration: none; }
+strong { font-weight: 700; color: #14121c; }
+em { font-style: italic; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 8mm 0; }
+ul, ol { margin: 0 0 3.5mm; padding-left: 6.5mm; }
+li { margin: 0.6mm 0; }
+li > p { margin-bottom: 1.5mm; }
+blockquote {
+  margin: 4mm 0; padding: 1mm 0 1mm 5mm; border-left: 0.8mm solid var(--rule);
+  color: var(--ink-soft); font-style: italic;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+table {
+  width: 100%; border-collapse: collapse; margin: 4mm 0 5mm;
+  font-family: var(--sans); font-size: 8.8pt; line-height: 1.45; break-inside: auto;
+}
+thead th {
+  text-align: left; font-weight: 700; color: var(--ink);
+  border-bottom: 0.5mm solid var(--ink); padding: 1.6mm 2.4mm;
+}
+tbody td { border-bottom: 1px solid var(--rule); padding: 1.6mm 2.4mm; vertical-align: top; }
+tbody tr { break-inside: avoid; }
+td code, th code { font-size: 8.2pt; }
+
+/* ------------------------------------------------------------------ inline code */
+
+code {
+  font-family: var(--mono); font-size: 0.86em;
+  font-variant-ligatures: none;
+}
+:not(pre) > code {
+  background: var(--inline-code-bg); color: var(--inline-code-fg);
+  padding: 0.1em 0.22em; border-radius: 3px; white-space: nowrap;
+}
+h1 code, h2 code, h3 code { background: none; color: inherit; padding: 0; }
+a code { color: var(--rust-deep); }
+
+/* ------------------------------------------------------------------ code blocks */
+
+.codeblock {
+  position: relative;
+  margin: 4.5mm 0 5mm;
+  border-radius: 2.4mm;
+  background: var(--code-bg);
+  break-inside: auto;
+  box-shadow: 0 0 0 1px #2a2a3c;
+}
+.codeblock-label {
+  font-family: var(--mono); font-size: 7.2pt; color: var(--code-label);
+  padding: 2mm 4mm 0; letter-spacing: 0.04em; text-transform: lowercase;
+}
+.codeblock-label { break-after: avoid; }
+.codeblock.has-file .codeblock-label {
+  text-transform: none; color: #f9e2af;
+}
+.codeblock.has-file .codeblock-label::before { content: "▸ "; color: #f38ba8; }
+.codeblock div.sourceCode,
+.codeblock pre {
+  background: transparent !important; margin: 0; border: 0;
+}
+pre {
+  font-family: var(--mono);
+  font-size: 8.4pt; line-height: 1.55;
+  color: var(--code-fg);
+  padding: 2.2mm 4mm 3.4mm;
+  margin: 0;
+  white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;
+  tab-size: 4;
+}
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; white-space: inherit; }
+div.sourceCode { overflow: visible; }
+pre > code.sourceCode > span { line-height: inherit; }
+
+/* Plain (non-highlighted) blocks inside .codeblock still get the dark look */
+.codeblock pre:not(.sourceCode) { color: var(--code-fg); }
+
+/* Shell and compiler output get a lighter, terminal-like treatment */
+.codeblock.lang-text, .codeblock.lang-sh, .codeblock.lang-bash, .codeblock.lang-console {
+  background: #11111b;
+}
+.codeblock.lang-text pre { color: #bac2de; }
+.codeblock.lang-sh pre, .codeblock.lang-bash pre, .codeblock.lang-console pre { color: #a6e3a1; }
+
+/* ------------------------------------------------------------------ callouts */
+
+.callout {
+  margin: 5mm 0; padding: 3mm 4.5mm 1.2mm;
+  border-left: 1.2mm solid var(--c);
+  background: var(--cbg);
+  border-radius: 0 2mm 2mm 0;
+  break-inside: avoid-page;
+  font-size: 9.8pt;
+}
+.callout-title {
+  font-family: var(--sans); font-size: 8.6pt; font-weight: 700; margin-bottom: 1.6mm;
+  color: var(--c);
+}
+.callout-kind { text-transform: uppercase; letter-spacing: 0.12em; }
+.callout-title-text { color: var(--ink); margin-left: 2mm; font-size: 9.4pt; letter-spacing: 0; }
+.callout-title-text::before { content: "— "; color: var(--muted); }
+.callout-body > :last-child { margin-bottom: 2mm; }
+.callout .codeblock { margin: 2.5mm 0 3mm; }
+.callout :not(pre) > code { background: rgba(255, 255, 255, 0.65); }
+
+.callout-note       { --c: var(--note);       --cbg: var(--note-bg); }
+.callout-tip        { --c: var(--tip);        --cbg: var(--tip-bg); }
+.callout-important  { --c: var(--important);  --cbg: var(--important-bg); }
+.callout-warning    { --c: var(--warning);    --cbg: var(--warning-bg); }
+.callout-caution    { --c: var(--caution);    --cbg: var(--caution-bg); }
+.callout-pattern    { --c: var(--pattern);    --cbg: var(--pattern-bg); }
+.callout-exercise   { --c: var(--exercise);   --cbg: var(--exercise-bg); }
+.callout-checkpoint { --c: var(--checkpoint); --cbg: var(--checkpoint-bg); }
+
+.callout-pattern { border-left-width: 0; border-top: 1mm solid var(--c); border-radius: 0 0 2mm 2mm; }
+.callout-pattern .callout-kind::before { content: "◆ "; }
+.callout-exercise .callout-kind::before { content: "✎ "; }
+.callout-checkpoint .callout-kind::before { content: "✓ "; }
+
+/* ------------------------------------------------------------------ diagrams */
+
+figure.diagram {
+  margin: 5mm 0 6mm; padding: 4mm 3mm;
+  border: 1px solid var(--rule); border-radius: 2.4mm;
+  background: #fcfbfd;
+  text-align: center;
+  break-inside: avoid;
+}
+figure.diagram pre.mermaid {
+  background: none; color: var(--ink); padding: 0; white-space: pre; font-family: var(--sans);
+  display: flex; justify-content: center;
+}
+figure.diagram svg { max-width: 100% !important; height: auto; max-height: 150mm; }
+
+figure { margin: 5mm 0; }
+figcaption { font-family: var(--sans); font-size: 8.4pt; color: var(--muted); text-align: center; margin-top: 2mm; }
+img { max-width: 100%; }
+
+/* ------------------------------------------------------------------ misc */
+
+.footnotes { font-size: 8.6pt; color: var(--ink-soft); }
+kbd {
+  font-family: var(--mono); font-size: 0.8em; padding: 0.1em 0.4em;
+  border: 1px solid #cfcbd8; border-bottom-width: 2px; border-radius: 3px; background: #faf9fc;
+}

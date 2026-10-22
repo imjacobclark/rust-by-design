@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Knowledge check — tests</title><style>body{max-width:850px;margin:40px auto;padding:20px;font:15px/1.8 monospace;background:#f7f8f4;color:#213a33}.pass{color:#245b47}.fail{color:#a4432c}</style><h1>Quiz engine tests</h1><p>These checks do not read or change saved study progress.</p><ol id="output"></ol><h2 id="result">Running…</h2><script src="questions.js"></script><script src="engine.js"></script><script>
+const {questions,sections}=QUIZ_BANK, E=QuizEngine, byId=Object.fromEntries(questions.map(q=>[q.id,q]));
+let passed=0,failed=0;
+function assert(value,message='Assertion failed'){if(!value)throw new Error(message)}
+function test(name,fn){const li=document.createElement('li');try{fn();li.textContent='PASS: '+name;li.className='pass';passed++}catch(e){li.textContent='FAIL: '+name+' — '+e.message;li.className='fail';failed++}document.querySelector('#output').append(li)}
+const fixed=()=>0.37;
+test('Question IDs are unique',()=>assert(new Set(questions.map(q=>q.id)).size===questions.length));
+test('Every section is represented',()=>sections.forEach(s=>assert(questions.some(q=>q.section===s.id))));
+test('Every answer index points to a distinct option',()=>questions.forEach(q=>assert(q.options.length===4&&new Set(q.options).size===4&&q.answer>=0&&q.answer<4)));
+test('Strand and section filters compose',()=>{const pool=E.eligible(questions,['foundations'],'tla');assert(pool.length===2);assert(pool.every(q=>q.section==='foundations'&&q.strand==='tla'))});
+test('An incompatible filter is empty',()=>assert(E.eligible(questions,['workshop'],'tla').length===0));
+test('No selected sections returns no questions',()=>assert(E.eligible(questions,[],'all').length===0));
+test('A mixed ten-question quiz covers all nine sections',()=>{const sample=E.sample(questions,10,fixed);assert(sample.length===10);assert(new Set(sample.map(q=>q.section)).size===9)});
+test('Sampling never duplicates a question',()=>assert(new Set(E.sample(questions,89,fixed).map(q=>q.id)).size===89));
+test('Requested count is capped to the available bank',()=>assert(E.sample(questions.slice(0,3),20,fixed).length===3));
+test('Empty sampling returns immediately',()=>assert(E.sample([],10,fixed).length===0));
+test('Shuffle preserves options without mutating input',()=>{const input=[0,1,2,3];const result=E.shuffle(input,fixed);assert(input.join()==='0,1,2,3');assert([...result].sort().join()==='0,1,2,3');assert(result.join()!==input.join())});
+test('New sessions have valid shuffled orders and no answers',()=>{const s=E.createSession(questions,20,'practice',fixed);assert(E.validSession(s,byId));assert(s.items.every(i=>!i.submitted&&i.choice===null));assert(s.items.some(i=>i.order.join()!=='0,1,2,3'))});
+test('An unsubmitted selection does not count towards score',()=>{const s=E.createSession(questions,2,'test',fixed);s.items[0].choice=byId[s.items[0].id].answer;assert(E.score(s,byId).correct===0)});
+test('Score uses original answer IDs after shuffling',()=>{const s=E.createSession(questions,2,'test',fixed);s.items.forEach((i,n)=>{i.choice=n===0?byId[i.id].answer:(byId[i.id].answer+1)%4;i.submitted=true});const result=E.score(s,byId);assert(result.correct===1&&result.answered===2&&result.percent===50)});
+test('Saved sessions survive JSON serialisation',()=>{const s=E.createSession(questions,10,'practice',fixed);s.items[0].choice=0;s.items[0].submitted=true;s.index=1;assert(E.validSession(JSON.parse(JSON.stringify(s)),byId))});
+test('Unknown question IDs invalidate a saved session',()=>{const s=E.createSession(questions,1,'practice',fixed);s.items[0].id='missing';assert(!E.validSession(s,byId))});
+test('Duplicate answer orders are rejected',()=>{const s=E.createSession(questions,1,'practice',fixed);s.items[0].order=[0,0,2,3];assert(!E.validSession(s,byId))});
+test('A finished session cannot contain unanswered items',()=>{const s=E.createSession(questions,1,'practice',fixed);s.finished=true;assert(!E.validSession(s,byId))});
+test('Out-of-range current question is rejected',()=>{const s=E.createSession(questions,1,'practice',fixed);s.index=1;assert(!E.validSession(s,byId))});
+test('Malformed saved items are rejected without throwing',()=>{const s=E.createSession(questions,1,'practice',fixed);s.items=[null];assert(!E.validSession(s,byId))});
+document.querySelector('#result').textContent=`${passed} passed, ${failed} failed`;
+document.title=failed?'FAIL — Quiz tests':'PASS — Quiz tests';
+</script></html>

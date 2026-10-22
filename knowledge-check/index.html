@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="A local study companion to Rust by Design. Practise the workshop, Rust foundations, six projects and TLA+ interludes.">
+  <title>Knowledge check · Rust by Design</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="questions.js" defer></script>
+  <script src="engine.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="#" class="brand" data-action="home"><span class="brand-mark">R<span>_</span></span><span>RUST BY DESIGN<small>THE STUDY COMPANION</small></span></a>
+      <div class="sidebar-label">YOUR WORKSPACE</div>
+      <button class="nav-home active" data-action="home"><span>▦</span> Knowledge check <span class="nav-dot"></span></button>
+      <div class="sidebar-label sections-label">EXPLORE THE BOOK</div>
+      <nav id="section-nav" aria-label="Book sections"></nav>
+      <div class="sidebar-note"><span class="tiny-mark">{ }</span><p>Types first.<br>Decisions pure.<br>Effects at the edges.</p><small>Learn the reasoning behind the code.</small></div>
+      <div class="local-note"><span></span> Local to your browser</div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><span>Rust by Design <span class="slash">/</span> <strong id="breadcrumb">Knowledge check</strong></span><span class="edition">A PRACTICE IN GOOD DESIGN</span></header>
+      <main id="main" tabindex="-1"></main>
+      <footer><span>Built around the book. Designed for understanding.</span><button class="text-button" data-action="reset">Reset saved progress</button></footer>
+    </div>
+  </div>
+  <dialog id="reset-dialog"><h2>Start with a clean slate?</h2><p>This clears your question history and saved session from this browser.</p><div class="button-row"><button class="secondary" data-action="cancel-reset">Keep my progress</button><button class="primary" data-action="confirm-reset">Reset progress</button></div></dialog>
+  <noscript>This quiz needs JavaScript enabled. It runs entirely in your browser.</noscript>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language>
+<!--
+  TLA+ and PlusCal highlighting for the book (KDE syntax-highlighting format,
+  loaded by pandoc via ‑‑syntax-definition). Use ```tla fences.
+  Unlike pandoc's built-in `tlaplus` syntax, this one highlights operators,
+  definitions and fairness, and treats a `(* ‑‑algorithm ... *)` block as
+  PlusCal code rather than as a comment.
+-->
+<language name="TLA" section="Scientific" version="1" kateversion="5.0"
+          extensions="*.tla" casesensitive="1" license="MIT">
+  <highlighting>
+    <list name="keywords">
+      <item>MODULE</item><item>EXTENDS</item><item>CONSTANT</item><item>CONSTANTS</item>
+      <item>VARIABLE</item><item>VARIABLES</item><item>ASSUME</item><item>THEOREM</item>
+      <item>LEMMA</item><item>AXIOM</item><item>LET</item><item>IN</item><item>IF</item>
+      <item>THEN</item><item>ELSE</item><item>CASE</item><item>OTHER</item><item>CHOOSE</item>
+      <item>EXCEPT</item><item>UNCHANGED</item><item>ENABLED</item><item>INSTANCE</item>
+      <item>WITH</item><item>LOCAL</item><item>RECURSIVE</item><item>LAMBDA</item>
+      <item>DOMAIN</item><item>SUBSET</item><item>UNION</item><item>PROOF</item>
+      <item>BY</item><item>QED</item>
+    </list>
+    <list name="builtins">
+      <item>BOOLEAN</item><item>TRUE</item><item>FALSE</item><item>Nat</item><item>Int</item>
+      <item>Real</item><item>STRING</item><item>Seq</item><item>Len</item><item>Append</item>
+      <item>Head</item><item>Tail</item><item>SubSeq</item><item>SelectSeq</item>
+      <item>Cardinality</item><item>IsFiniteSet</item><item>Print</item><item>PrintT</item>
+      <item>Assert</item><item>ToString</item><item>Permutations</item><item>SortSeq</item>
+      <item>Integers</item><item>Naturals</item><item>Sequences</item><item>FiniteSets</item>
+      <item>TLC</item><item>Bags</item>
+    </list>
+    <list name="pluscal">
+      <item>algorithm</item><item>fair</item><item>process</item><item>variables</item>
+      <item>variable</item><item>define</item><item>macro</item><item>procedure</item>
+      <item>begin</item><item>end</item><item>while</item><item>do</item><item>if</item>
+      <item>then</item><item>else</item><item>elsif</item><item>either</item><item>or</item>
+      <item>with</item><item>await</item><item>when</item><item>goto</item><item>skip</item>
+      <item>return</item><item>call</item><item>assert</item><item>print</item><item>self</item>
+    </list>
+    <contexts>
+      <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+        <RegExpr attribute="PlusCal Marker" context="PlusCal" String="\(\*\s*--(fair\s+)?algorithm"/>
+        <Detect2Chars attribute="Comment" context="BlockComment" char="(" char1="*"/>
+        <IncludeRules context="Common"/>
+      </context>
+      <context name="Common" attribute="Normal Text" lineEndContext="#stay">
+        <RegExpr attribute="Comment" context="#stay" String="\\\*.*$"/>
+        <DetectChar attribute="String" context="String" char="&quot;"/>
+        <RegExpr attribute="Delimiter" String="-{4,}|={4,}"/>
+        <RegExpr attribute="Fairness" String="\b(WF|SF)_"/>
+        <RegExpr attribute="Definition" String="^[A-Za-z_][A-Za-z0-9_]*(?=(\([^)]*\))?\s*==)"/>
+        <keyword attribute="Keyword" String="keywords"/>
+        <keyword attribute="Builtin" String="builtins"/>
+        <RegExpr attribute="Operator" String="/\\|\\/|\\(in|notin|A|E|AA|EE|subseteq|subset|union|cup|intersect|cap|X|times|o|div|leq|geq|lnot|land|lor|equiv|in)\b|&lt;&lt;|&gt;&gt;|\[\]|&lt;&gt;|~&gt;|=&gt;|&lt;=&gt;|==|:=|\|-&gt;|-&gt;|\.\.|/=|#|~|'|@"/>
+        <Int attribute="Number"/>
+      </context>
+      <context name="BlockComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1=")"/>
+      </context>
+      <context name="String" attribute="String" lineEndContext="#pop">
+        <DetectChar attribute="String" context="#pop" char="&quot;"/>
+      </context>
+      <context name="PlusCal" attribute="Normal Text" lineEndContext="#stay">
+        <Detect2Chars attribute="PlusCal Marker" context="#pop" char="*" char1=")"/>
+        <RegExpr attribute="Label" firstNonSpace="true" String="[A-Za-z_][A-Za-z0-9_]*:(?!=)"/>
+        <keyword attribute="PlusCal Keyword" String="pluscal"/>
+        <IncludeRules context="Common"/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text" defStyleNum="dsNormal"/>
+      <itemData name="Keyword" defStyleNum="dsKeyword"/>
+      <itemData name="Builtin" defStyleNum="dsDataType"/>
+      <itemData name="Operator" defStyleNum="dsOperator"/>
+      <itemData name="Definition" defStyleNum="dsFunction"/>
+      <itemData name="Fairness" defStyleNum="dsExtension"/>
+      <itemData name="Number" defStyleNum="dsDecVal"/>
+      <itemData name="String" defStyleNum="dsString"/>
+      <itemData name="Comment" defStyleNum="dsComment"/>
+      <itemData name="Delimiter" defStyleNum="dsComment"/>
+      <itemData name="PlusCal Marker" defStyleNum="dsAnnotation"/>
+      <itemData name="PlusCal Keyword" defStyleNum="dsControlFlow"/>
+      <itemData name="Label" defStyleNum="dsAttribute"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="\*"/>
+      <comment name="multiLine" start="(*" end="*)"/>
+    </comments>
+    <keywords casesensitive="1"/>
+  </general>
+</language>
