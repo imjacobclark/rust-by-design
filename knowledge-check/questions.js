@@ -66,10 +66,18 @@ window.QUIZ_BANK = {
       "topics": "Actors · backpressure · cancellation"
     },
     {
+      "id": "proofs",
+      "part": "VIII",
+      "title": "Types as proofs",
+      "folder": "08-proofs",
+      "description": "Push Rust’s types toward propositions, protocols and proofs.",
+      "topics": "Curry–Howard · typestate · verification"
+    },
+    {
       "id": "appendices",
       "part": "A–E",
       "title": "The reference shelf",
-      "folder": "08-appendices",
+      "folder": "09-appendices",
       "description": "Connect the patterns and revisit the essentials.",
       "topics": "Patterns · syntax · tooling · TLA+"
     }
@@ -1534,6 +1542,258 @@ window.QUIZ_BANK = {
       "chapter": "Interlude: Does the crawl finish?"
     },
     {
+      "id": "proofs-01",
+      "section": "proofs",
+      "topic": "Algebra of types",
+      "prompt": "Why does replacing three independent boolean flags with an enum often improve a domain model?",
+      "options": [
+        "The enum represents only the meaningful alternatives instead of all eight flag combinations",
+        "Enums always use zero bytes at runtime",
+        "Boolean fields cannot be pattern matched",
+        "Enums allow every combination without validation"
+      ],
+      "answer": 0,
+      "explanation": "Three booleans have 2 × 2 × 2 = 8 possible values, including contradictory states. A sum type can name exactly the alternatives the domain permits.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/01-types-as-propositions.md",
+      "chapter": "Types as propositions"
+    },
+    {
+      "id": "proofs-02",
+      "section": "proofs",
+      "topic": "Curry–Howard",
+      "prompt": "Under the Curry–Howard correspondence, what does a Rust function body represent?",
+      "options": [
+        "A proof of the proposition expressed by its signature",
+        "A runtime benchmark of its signature",
+        "A subtype of every argument",
+        "A guarantee that the function terminates"
+      ],
+      "answer": 0,
+      "explanation": "Types correspond to propositions and values to proofs: implementing a function constructs evidence for its result from evidence supplied as arguments. Panic, divergence and unsafe assumptions limit the analogy in ordinary Rust.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/01-types-as-propositions.md",
+      "chapter": "Types as propositions"
+    },
+    {
+      "id": "proofs-03",
+      "section": "proofs",
+      "topic": "Higher-kinded types",
+      "prompt": "Why can’t stable Rust express one fully general Haskell-style Functor trait for Option, Result and Vec?",
+      "options": [
+        "Rust cannot abstract directly over type constructors such as Option<_>",
+        "Rust has no generic traits",
+        "Those types do not support map operations",
+        "Associated types can never mention generic parameters"
+      ],
+      "answer": 0,
+      "explanation": "Haskell can quantify over a constructor of kind Type → Type. Rust abstracts over concrete types; generic associated types help in narrower designs but are not general higher-kinded types.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/01-types-as-propositions.md",
+      "chapter": "Types as propositions"
+    },
+    {
+      "id": "proofs-04",
+      "section": "proofs",
+      "topic": "Lawful abstractions",
+      "prompt": "How does the book recommend checking functor and monad laws in Rust?",
+      "options": [
+        "Encode the laws as property tests over many generated values",
+        "Assume matching method names make an implementation lawful",
+        "Check one handwritten example for each method",
+        "Require the compiler to prove semantic equality"
+      ],
+      "answer": 0,
+      "explanation": "Rust’s trait system cannot state equations such as mapping identity changes nothing. Property-based tests make those algebraic laws executable evidence.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/01-types-as-propositions.md",
+      "chapter": "Types as propositions"
+    },
+    {
+      "id": "proofs-05",
+      "section": "proofs",
+      "topic": "Type-level functions",
+      "prompt": "In Payment<S>, why give the sealed State trait an associated Evidence type?",
+      "options": [
+        "Each state selects exactly the evidence stored for that state",
+        "It lets callers invent new payment states",
+        "It converts every transition into a runtime string",
+        "It makes all states store the same optional fields"
+      ],
+      "answer": 0,
+      "explanation": "S::Evidence acts like a type-level function from state to data. Created can carry no evidence while Authorised and Captured carry the identifiers their states guarantee.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/02-state-machines-in-the-type-system.md",
+      "chapter": "State machines in the type system"
+    },
+    {
+      "id": "proofs-06",
+      "section": "proofs",
+      "topic": "Proof tokens",
+      "prompt": "What makes an Authorisation proof token meaningful evidence rather than a decorative wrapper?",
+      "options": [
+        "Its construction is private and only successful authorisation can produce one",
+        "Its fields are all public",
+        "It can be created from any boolean",
+        "It is represented as a string"
+      ],
+      "answer": 0,
+      "explanation": "An evidence type is useful only when it is unforgeable outside the trusted boundary. Possessing the token then records that the check or effect which creates it succeeded.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/02-state-machines-in-the-type-system.md",
+      "chapter": "State machines in the type system"
+    },
+    {
+      "id": "proofs-07",
+      "section": "proofs",
+      "topic": "Indexed protocols",
+      "prompt": "What does Program<From, To, Out> add beyond a single typestate transition?",
+      "options": [
+        "A composable value whose type records the protocol’s start state, end state and output",
+        "A way to skip illegal intermediate states at runtime",
+        "A guarantee that external services never fail",
+        "A replacement for every enum in the program"
+      ],
+      "answer": 0,
+      "explanation": "Indexing the program by its endpoints lets composition require one step’s end state to match the next step’s start state, making whole workflows type-check.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/02-state-machines-in-the-type-system.md",
+      "chapter": "State machines in the type system"
+    },
+    {
+      "id": "proofs-08",
+      "section": "proofs",
+      "topic": "Branded scopes",
+      "prompt": "What invariant does a fresh lifetime brand enforce for scoped values?",
+      "options": [
+        "Values from one scope cannot be mixed with another scope or escape it",
+        "Every value must be copied into global storage",
+        "The scope may outlive the program",
+        "A value is guaranteed to be used exactly once"
+      ],
+      "answer": 0,
+      "explanation": "A higher-ranked closure introduces a fresh lifetime that callers cannot name. Values branded with it stay tied to that invocation, much like Haskell’s runST isolates state threads.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/02-state-machines-in-the-type-system.md",
+      "chapter": "State machines in the type system"
+    },
+    {
+      "id": "proofs-09",
+      "section": "proofs",
+      "topic": "Refinement types",
+      "prompt": "What does a refinement type add to an ordinary base type?",
+      "options": [
+        "A logical predicate that values of the type must satisfy",
+        "A second heap allocation for every value",
+        "An automatically generated network adapter",
+        "A requirement that all values implement Clone"
+      ],
+      "answer": 0,
+      "explanation": "A refinement narrows a type with a proposition, such as an amount being positive or a refund not exceeding the captured amount. Tools discharge the resulting verification conditions.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/03-beyond-the-type-checker.md",
+      "chapter": "Beyond the type checker"
+    },
+    {
+      "id": "proofs-10",
+      "section": "proofs",
+      "topic": "Assurance ladder",
+      "prompt": "Why can a typed and locally verified refund function still allow a double refund?",
+      "options": [
+        "Concurrent calls can each observe the same pre-refund state before either update commits",
+        "Typestate makes arithmetic overflow unavoidable",
+        "A proof token always permits unlimited reuse",
+        "Model checking ignores all state transitions"
+      ],
+      "answer": 0,
+      "explanation": "Local contracts prove facts about one call. The double-refund bug is a system-level interleaving, so the read-check-write operation also needs atomicity and a concurrency model such as the PlusCal/TLA+ one in the chapter.",
+      "code": "",
+      "strand": "core",
+      "source": "book/08-proofs/03-beyond-the-type-checker.md",
+      "chapter": "Beyond the type checker"
+    },
+    {
+      "id": "proofs-11",
+      "section": "proofs",
+      "topic": "Applicative validation",
+      "prompt": "When is accumulating validation errors preferable to chaining checks with the ? operator?",
+      "options": [
+        "When independent fields should report all of their errors in one pass",
+        "When later checks require the successful value from earlier checks",
+        "When the first error must stop an irreversible effect",
+        "When there are no possible validation failures"
+      ],
+      "answer": 0,
+      "explanation": "Monadic sequencing with ? stops at the first error and supports dependency. Applicative-style validation combines independent results so a user can fix every field reported at once.",
+      "code": "",
+      "strand": "core",
+      "source": "book/01-foundations/04-errors-as-values.md",
+      "chapter": "Errors are values"
+    },
+    {
+      "id": "proofs-12",
+      "section": "proofs",
+      "topic": "Parametricity",
+      "prompt": "What does a minimal generic signature tell a reviewer about an implementation?",
+      "options": [
+        "The absent trait bounds rule out operations the implementation has no permission to use",
+        "The implementation can call any method on the type",
+        "The function is necessarily implemented with unsafe code",
+        "All instantiations have identical runtime representation"
+      ],
+      "answer": 0,
+      "explanation": "Generic bounds are capabilities. If a function receives only T, without Clone, Display or other bounds, its signature sharply limits what it can observe or do with a T.",
+      "code": "",
+      "strand": "core",
+      "source": "book/01-foundations/05-traits-and-generics.md",
+      "chapter": "Traits and generics"
+    },
+    {
+      "id": "proofs-13",
+      "section": "proofs",
+      "topic": "Capabilities",
+      "prompt": "Why pass a narrow capability into domain logic instead of letting it access an ambient client?",
+      "options": [
+        "The signature exposes and limits the effects the logic is authorised to perform",
+        "It proves the external service will always respond",
+        "It removes every runtime error automatically",
+        "It gives the domain access to all infrastructure"
+      ],
+      "answer": 0,
+      "explanation": "Explicit capabilities make authority visible and reviewable. Rust traits cannot fully encode an effect row, but a narrow port still prevents accidental access to unrelated effects.",
+      "code": "",
+      "strand": "core",
+      "source": "book/02-ddns/03-ports-and-adapters.md",
+      "chapter": "Ports and adapters"
+    },
+    {
+      "id": "proofs-14",
+      "section": "proofs",
+      "topic": "Existential packaging",
+      "prompt": "Why does data loaded from storage need an enum such as AnyTask around typestate values?",
+      "options": [
+        "The precise state is known only at runtime, so the package hides it until pattern matching reveals it",
+        "Rust requires every stored value to use dynamic dispatch",
+        "Typestate values cannot contain ordinary fields",
+        "The enum erases all state checks permanently"
+      ],
+      "answer": 0,
+      "explanation": "The package says there exists some state S for Task<S>. Matching on the runtime sum type recovers a concrete variant and therefore the precise typestate needed by state-specific operations.",
+      "code": "",
+      "strand": "core",
+      "source": "book/03-todo/02-modelling-tasks.md",
+      "chapter": "Modelling tasks"
+    },
+    {
       "id": "appendices-01",
       "section": "appendices",
       "topic": "Pattern transfer",
@@ -1548,7 +1808,7 @@ window.QUIZ_BANK = {
       "explanation": "The boundary prevents the external service’s representation and vocabulary from spreading through the domain.",
       "code": "",
       "strand": "core",
-      "source": "book/08-appendices/01-pattern-catalogue.md",
+      "source": "book/09-appendices/01-pattern-catalogue.md",
       "chapter": "Appendix A: Pattern catalogue"
     },
     {
@@ -1566,7 +1826,7 @@ window.QUIZ_BANK = {
       "explanation": "Pure rules make decisions from values. Ports describe needed effects; adapters and the shell connect them to the outside world.",
       "code": "",
       "strand": "core",
-      "source": "book/08-appendices/01-pattern-catalogue.md",
+      "source": "book/09-appendices/01-pattern-catalogue.md",
       "chapter": "Appendix A: Pattern catalogue"
     },
     {
@@ -1584,7 +1844,7 @@ window.QUIZ_BANK = {
       "explanation": "transpose moves the fallibility outward: None becomes Ok(None), Some(Ok(x)) becomes Ok(Some(x)), and Some(Err(e)) becomes Err(e).",
       "code": "",
       "strand": "core",
-      "source": "book/08-appendices/02-syntax-quick-reference.md",
+      "source": "book/09-appendices/02-syntax-quick-reference.md",
       "chapter": "Appendix B: Rust syntax quick reference"
     },
     {
@@ -1602,7 +1862,7 @@ window.QUIZ_BANK = {
       "explanation": "pub(crate) exposes an item across its own crate while keeping it out of the external public API.",
       "code": "",
       "strand": "core",
-      "source": "book/08-appendices/02-syntax-quick-reference.md",
+      "source": "book/09-appendices/02-syntax-quick-reference.md",
       "chapter": "Appendix B: Rust syntax quick reference"
     },
     {
@@ -1620,7 +1880,7 @@ window.QUIZ_BANK = {
       "explanation": "Pandoc and the Lua filter produce HTML, and Chrome renders diagrams and prints using the book’s paged styles.",
       "code": "",
       "strand": "core",
-      "source": "book/08-appendices/03-building-this-book.md",
+      "source": "book/09-appendices/03-building-this-book.md",
       "chapter": "Appendix C: Building this book"
     },
     {
@@ -1638,7 +1898,7 @@ window.QUIZ_BANK = {
       "explanation": "Appendix D groups resources for Rust, types and domain modelling, formal methods, and the individual projects.",
       "code": "",
       "strand": "core",
-      "source": "book/08-appendices/04-further-reading.md",
+      "source": "book/09-appendices/04-further-reading.md",
       "chapter": "Appendix D: Further reading"
     },
     {
@@ -1656,7 +1916,7 @@ window.QUIZ_BANK = {
       "explanation": "[] is “always”; <> is “eventually”. These describe behaviours rather than imperative control flow.",
       "code": "",
       "strand": "tla",
-      "source": "book/08-appendices/05-tla-quick-reference.md",
+      "source": "book/09-appendices/05-tla-quick-reference.md",
       "chapter": "Appendix E: TLA+ quick reference"
     },
     {
@@ -1674,7 +1934,7 @@ window.QUIZ_BANK = {
       "explanation": "An unprimed variable refers to the current state; a primed variable refers to the next state. Actions relate those states.",
       "code": "",
       "strand": "tla",
-      "source": "book/08-appendices/05-tla-quick-reference.md",
+      "source": "book/09-appendices/05-tla-quick-reference.md",
       "chapter": "Appendix E: TLA+ quick reference"
     }
   ]

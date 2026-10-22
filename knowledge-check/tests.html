@@ -10,8 +10,8 @@ test('Every answer index points to a distinct option',()=>questions.forEach(q=>a
 test('Strand and section filters compose',()=>{const pool=E.eligible(questions,['foundations'],'tla');assert(pool.length===2);assert(pool.every(q=>q.section==='foundations'&&q.strand==='tla'))});
 test('An incompatible filter is empty',()=>assert(E.eligible(questions,['workshop'],'tla').length===0));
 test('No selected sections returns no questions',()=>assert(E.eligible(questions,[],'all').length===0));
-test('A mixed ten-question quiz covers all nine sections',()=>{const sample=E.sample(questions,10,fixed);assert(sample.length===10);assert(new Set(sample.map(q=>q.section)).size===9)});
-test('Sampling never duplicates a question',()=>assert(new Set(E.sample(questions,89,fixed).map(q=>q.id)).size===89));
+test('A mixed quiz can cover every section',()=>{const sample=E.sample(questions,sections.length,fixed);assert(sample.length===sections.length);assert(new Set(sample.map(q=>q.section)).size===sections.length)});
+test('Sampling never duplicates a question',()=>assert(new Set(E.sample(questions,questions.length,fixed).map(q=>q.id)).size===questions.length));
 test('Requested count is capped to the available bank',()=>assert(E.sample(questions.slice(0,3),20,fixed).length===3));
 test('Empty sampling returns immediately',()=>assert(E.sample([],10,fixed).length===0));
 test('Shuffle preserves options without mutating input',()=>{const input=[0,1,2,3];const result=E.shuffle(input,fixed);assert(input.join()==='0,1,2,3');assert([...result].sort().join()==='0,1,2,3');assert(result.join()!==input.join())});

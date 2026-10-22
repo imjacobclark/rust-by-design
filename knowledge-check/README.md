@@ -1,7 +1,8 @@
 # Rust by Design — knowledge check
 
-A dependency-free, browser-based study companion. **89 questions across nine
-book sections**, including the six TLA+ interludes. Each question has an
+A dependency-free, browser-based study companion. **103 questions across ten
+book sections**, including the new Haskell-inspired type and proof material and
+the six TLA+ interludes. Each question has an
 explanation and a link to its Markdown chapter.
 
 ## Run
