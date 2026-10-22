@@ -731,6 +731,95 @@ fn parallel_fold_agrees_with_sequential(
 }
 ```
 
+### A scope nothing escapes
+
+`fold_parallel` is a pure function from the outside: text in, accumulator
+out, nothing changed. Inside, it spawns threads, shares a closure and joins
+handles. Haskell has a famous version of this "messy inside, pure outside"
+shape, and comparing the two shows what `thread::scope` is really doing.
+
+In Haskell, ordinary code can't mutate anything. The `ST` type lets a
+computation use genuinely mutable variables (`STRef`s) internally, and
+`runST` runs it and hands back a plain, pure result:
+
+```haskell
+total :: [Int] -> Int
+total xs = runST $ do
+  ref <- newSTRef 0
+  mapM_ (\x -> modifySTRef' ref (+ x)) xs
+  readSTRef ref
+```
+
+`total` creates a mutable cell, adds each number into it, and reads it out.
+Callers just see `[Int] -> Int`. The safety argument hangs on `runST`'s
+type:
+
+```haskell
+runST :: (forall s. ST s a) -> a
+```
+
+The `forall s.` *inside* the parentheses is the trick. It says the
+computation must work for *every* `s`, a type that `runST` chooses and the
+computation can't know. Every mutable reference is tagged with that `s`, as
+`STRef s Int`. The result type `a` is chosen outside the parentheses, so it
+can't mention `s`. Try to return the reference itself,
+`runST (newSTRef 0)`, and GHC refuses: it "couldn't match type `a` with
+`STRef s Int`", because `s` would escape its scope. A type like this, with a
+`forall` nested inside an argument, is called a *rank-2* type.
+
+Now look at the real signature of `std::thread::scope`:
+
+```rust
+pub fn scope<'env, F, T>(f: F) -> T
+where
+    F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> T,
+```
+
+`for<'scope>` is Rust's `forall`, applied to a lifetime: the closure must
+work for *any* `'scope` that `thread::scope` picks, a region the closure
+can't name. Every handle from `scope.spawn` is tagged with it, as
+`ScopedJoinHandle<'scope, T>`. And the result `T` is chosen outside, so it
+can't mention `'scope`. Try to smuggle a handle out, so that a thread could
+be joined (or not) after the scope has ended:
+
+```rust
+// does not compile
+pub fn escape(text: &str) -> usize {
+    let worker =
+        std::thread::scope(|scope| scope.spawn(move || text.len()));
+    worker.join().unwrap()
+}
+```
+
+```text
+error: lifetime may not live long enough
+ --> src/lib.rs:3:36
+  |
+3 |         std::thread::scope(|scope| scope.spawn(move || text.len()));
+  |                             ------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                             |    |  returning this value requires
+  |                             |    |  that `'1` must outlive `'2`
+  |                             |    |
+  |                             |    return type of closure is
+  |                             |    ScopedJoinHandle<'2, usize>
+  |                             has type `&'1 Scope<'1, '_>`
+```
+
+Same idea, different machinery. Haskell brands mutable *references* with a
+type variable so they can't outlive `runST`; Rust brands *thread handles*
+with a lifetime so they can't outlive `scope`, which is what lets it promise
+every thread has finished before `scope` returns, and so lets those threads
+borrow `text`. In both cases the local effects are real, and the boundary
+makes them invisible. Rust gets the rest of the bargain from ownership: our
+`step` closure mutates nothing shared, each thread owns its accumulator, and
+the only thing that comes out is a value. You've seen this rank-2 move once
+before in this chapter, too: `try_fold_lines`'s higher-ranked `&str` is what
+stopped a line escaping through the accumulator.
+
+Chapter 30 turns this into a deliberate design tool, *branded scopes*, where
+an unnameable lifetime stops a token or index from one scope being used in
+another.
+
 ### One aggregate function for both
 
 The shell's `aggregate` uses whichever strategy fits. It wraps the user's
@@ -855,6 +944,8 @@ remaining costs few enough to list.
 - **Scoped threads may borrow**, so a parallel fold over zero-copy data needs
   no copying, and the result is checked against the sequential fold by a
   property test.
+- **`thread::scope` is Rust's `runST`**: a higher-ranked `for<'scope>` stops
+  handles escaping, so local concurrency stays behind a pure interface.
 
 ## Exercises
 

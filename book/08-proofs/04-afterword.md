@@ -5,11 +5,13 @@ the first Fahrenheit value. We've ended with a crawler that runs hundreds of
 requests at once, keeps to a budget, stops cleanly when asked, and is tested
 down to the millisecond without touching a network. In between we built a DNS
 daemon you can deploy, a to-do list with a full history, a live dashboard, a
-ledger that refuses to unbalance and a query language for logs.
+ledger that refuses to unbalance, a query language for logs, and finally the
+core of a payment processor whose types refuse to refund a payment that was
+never captured.
 
-Those six projects look very different from one another. That was the point. If
-the same handful of moves works for a systemd daemon, a reactive web page, a
-bookkeeping engine and a concurrent crawler, then they aren't tricks for one
+Those seven projects look very different from one another. That was the point.
+If the same handful of moves works for a systemd daemon, a reactive web page, a
+bookkeeping engine, a concurrent crawler and a payment core, then they aren't tricks for one
 kind of program. They're a way of working. Let's name them one last time.
 
 ## Types first
@@ -79,6 +81,14 @@ already shaped for them. A pure `handle(State, Msg) -> (State, Vec<Effect>)`
 is most of a spec before you've written one. It's the same habit as the other
 three, in a different notation: say the design precisely enough that a
 machine can check it, before the code has to.
+
+Part VIII added the last rung. Types can carry a surprising amount of proof
+(states, transitions, evidence that can't be forged), and past them sit
+refinement checkers, Kani and Lean. But the most useful thing Chapter 31
+showed may be its least comfortable: Kani proved `refundable` correct for
+every input, and two workers still refunded the same payment twice. Each tool
+answers its own question, and none answers the others'. Knowing which
+question you're asking is most of the skill.
 
 ## The compiler as a partner
 

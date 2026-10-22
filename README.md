@@ -22,7 +22,8 @@ a programmer actually would.
 | V. `ledger` | `book/05-ledger` | Double-entry bookkeeping engine |
 | VI. `logq` | `book/06-logq` | Streaming log query language |
 | VII. `linkcheck` | `book/07-linkcheck` | Concurrent link checker (actors) |
-| Appendices | `book/08-appendices` | Pattern catalogue, syntax reference, pipeline, reading |
+| VIII. Types as Proofs | `book/08-proofs` | A payment core: Haskell-style type-level design in Rust, refinement types, proofs |
+| Appendices | `book/09-appendices` | Pattern catalogue, syntax reference, pipeline, reading |
 
 Woven through the parts is a **TLA+ strand**: six interludes that teach TLA+
 and the TLC model checker from scratch by modelling the systems the book
@@ -42,7 +43,7 @@ make html          # HTML only, for quick previews
 
 The pipeline is Markdown → pandoc (with a Lua filter and a custom syntax theme)
 → HTML → headless Chrome → PDF. Mermaid diagrams are drawn by mermaid.js at
-print time. See *Appendix C* (`book/08-appendices/03-building-this-book.md`)
+print time. See *Appendix C* (`book/09-appendices/03-building-this-book.md`)
 for details.
 
 ## Contributing / writing

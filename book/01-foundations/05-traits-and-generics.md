@@ -123,6 +123,151 @@ nothing else.
 > called **monomorphisation**: turning one polymorphic function into many
 > monomorphic ones. The price is paid in compile time and binary size instead.
 
+## What a signature forbids
+
+"The body may only use abilities the signature has asked for" sounds like a
+restriction on the person writing the function. Turn it round and it's a
+gift to the person *reading* it. A generic signature tells you not only what
+a function may do, but a great deal about what it can't.
+
+### A function with one possible body
+
+Haskell programmers have a party trick here. Given only a type, they can
+often tell you what the function does:
+
+```haskell
+identity :: a -> a
+identity x = x
+```
+
+The lower-case `a` is a type variable, like Rust's `T`; Haskell quietly reads
+it as "for every type `a`". The claim is that, ignoring crashes and infinite
+loops, `identity` has only one possible implementation. Think about it from
+inside the function. You've been handed a value of a type you know nothing
+about, and you must return a value of that same type. You can't make one up,
+because you don't know what type it is. You can't inspect the one you've got,
+because you don't know what operations it has. All you can do is hand it
+back.
+
+Rust's version is the same function, and the same argument applies:
+
+```rust
+pub fn identity<T>(x: T) -> T {
+    x
+}
+```
+
+This property is called **parametricity**: a function generic in `T` must
+treat every `T` the same way, because it can't find out which `T` it has. The
+facts you can deduce from a signature alone have a lovely name, too: **free
+theorems**, because you get them without reading, or testing, the body.
+
+### Trait bounds are permissions
+
+`identity` is a toy. Here's something the status board really needs: it has
+room for ten lines, newest first.
+
+```rust
+/// The board has room for ten lines, newest first.
+pub fn fit_board<T>(lines: Vec<T>) -> Vec<T> {
+    lines.into_iter().rev().take(10).collect()
+}
+```
+
+Look only at the signature, `fn fit_board<T>(lines: Vec<T>) -> Vec<T>`, and
+ask what *any* implementation could do. Every element of the output must have
+come from the input, because the function has no other way to get a `T`. It
+can't compare elements, or print them, or check whether one is "the hall
+thermostat", because `T` has no methods. It can't even duplicate an element,
+because copying a `T` needs `Clone`, and the signature didn't ask for it. What
+remains is dropping elements and rearranging the rest. That's all.
+
+There's a precise version of that free theorem: for any function `g`, mapping
+`g` over the list and then calling `fit_board` gives the same result as
+calling `fit_board` and then mapping `g`. The function can't tell the
+difference, because it never looks at the elements. (That makes a neat
+property test, of the kind Chapter 7 introduces.)
+
+Now suppose the board should sort its lines instead. With the same bare `T`,
+the compiler stops us:
+
+```rust
+// does not compile
+pub fn tidy<T>(mut items: Vec<T>) -> Vec<T> {
+    items.sort();
+    items
+}
+```
+
+```text
+error[E0277]: the trait bound `T: Ord` is not satisfied
+ --> src/lib.rs:2:11
+  |
+2 |     items.sort();
+  |           ^^^^ the trait `Ord` is not implemented for `T`
+  |
+help: consider restricting type parameter `T` with trait `Ord`
+  |
+1 | pub fn tidy<T: std::cmp::Ord>(mut items: Vec<T>) -> Vec<T> {
+  |              +++++++++++++++
+```
+
+Adding `T: Ord` fixes it, and it changes what the signature *permits*. The
+function may now compare elements, and nothing more. Each bound is a
+permission: `T: Ord` to compare, `T: Clone` to duplicate, `T: Display` to
+print, `T: Default` to conjure up a fresh value. In Haskell the same
+permission is written `Ord a =>` in front of the type, as in
+`sort :: Ord a => [a] -> [a]`, which makes the reading more literal still:
+"given that `a` can be ordered, ...".
+
+The `largest` function from the last section has a free theorem of its own.
+Its signature is `fn largest<T: PartialOrd>(items: &[T]) -> Option<&T>`. The
+only way to produce a `&T` is to borrow one of the items, so whatever it
+returns is either `None` or a reference to an element of the slice. It can't
+return a made-up maximum, whatever bug is lurking in its body.
+
+### Where Rust's version leaks
+
+Haskell's free theorems come with small print, and Rust's come with more. A
+generic Rust function is parametric in what it can do *with its `T`*, not in
+everything it can do. A function with `fit_board`'s signature could still:
+
+- **panic** or **loop forever**, so "returns a rearrangement" really means
+  "returns a rearrangement, if it returns";
+- **perform side effects**: print, write a file, read the clock, or touch a
+  global variable, since nothing in a Rust signature mentions effects;
+- **ask about the type's layout** with `std::mem::size_of::<T>()`, which works
+  for any `T`, so a function can quietly behave differently for large types;
+- **ask which type it has**, if the signature allows `T: 'static`: then
+  `std::any::Any` and `TypeId` can test for a particular type at runtime and
+  take a different path.
+
+None of these is common in ordinary code, and the last two need the author to
+go out of their way. But they're why we say "parametric in `T`" rather than
+"pure".
+
+### Why it matters for review
+
+This might seem academic. It becomes very practical when you're reviewing
+code you didn't write, whether a colleague's or an AI assistant's. A unit
+test checks one input. A generic signature constrains every implementation
+that could ever be written for it. If a helper is declared
+`fn pick<T>(items: Vec<T>) -> Vec<T>`, you know, before reading the body,
+that it can't have invented an element or changed one. If it's declared
+over `Vec<Thermostat>` instead, it could build new thermostats, change their
+targets or pick them by name, and the only way to know is to read every
+line. When you have the choice, ask for the most generic
+signature the job allows: the fewer permissions a function has, the fewer
+ways it can be wrong.
+
+> [!PATTERN] Parametricity (Constraints as Permissions)
+> Write functions as generically as the job allows, and treat each trait bound
+> as a permission the body is granted: no bound means the function can only
+> move, drop or rearrange its `T`s; `Clone` lets it duplicate, `Ord` lets it
+> compare. Readers (and reviewers) can then deduce what the function can't do
+> from its signature alone. Rust's guarantee covers what the code does *with
+> `T`*, not panics, loops or side effects.
+
 ## Defining a contract
 
 Back to the status board. We have two kinds of device, and they share no data
@@ -883,6 +1028,9 @@ one.
   bound is checked once, at the definition: the body may only use what the
   signature asks for.
 - **Monomorphisation** makes generic code as fast as hand-written code.
+- **Parametricity**: a function generic in `T` can't inspect or invent `T`s,
+  so its signature alone rules out whole families of bugs. Trait bounds are
+  the permissions it's been granted.
 - **Traits as Contracts**: a trait names a role in the domain; types sign up
   explicitly with `impl Trait for Type`, and default methods build on the
   required ones.

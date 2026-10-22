@@ -152,6 +152,90 @@ the compiler checks the discriminant for you. From Java, think sealed interfaces
 and records. From Python or Go, there isn't a direct equivalent, which is
 exactly why the flag-bag struct is so common in those languages.
 
+### Counting, written down
+
+The counting we did by hand has a precise form, and it's worth writing down
+once, because it turns "this type feels too loose" into a number you can
+check. Write |T| for the number of values a type `T` can hold, its
+*cardinality*. Then:
+
+| Type | Values | Rule |
+|---|---|---|
+| `()` | 1 | the unit type has exactly one value |
+| `bool` | 2 | `false`, `true` |
+| `(A, B)`, or a struct of `A` and `B` | \|A\| × \|B\| | products multiply |
+| `enum { X(A), Y(B) }` | \|A\| + \|B\| | sums add; a variant with no data counts 1 |
+| `Option<T>` | 1 + \|T\| | `None`, plus one `Some` per `T` |
+| `Result<T, E>` | \|T\| + \|E\| | every `Ok` plus every `Err` |
+| `enum Never {}` | 0 | an enum with no variants has no values |
+
+Haskell programmers will recognise this. Haskell's `data` declarations are
+algebraic data types in exactly the same sense, and Haskell writing about
+type design often starts with this arithmetic:
+
+```haskell
+data Direction = North | East | South | West    -- 4 values
+data Command   = Start | Stop | Move Direction   -- 1 + 1 + 4 = 6
+data Config    = Config Bool Direction           -- 2 × 4 = 8
+```
+
+Each `data` line declares a type. The `|` separates alternatives, so
+`Direction` is a Rust enum of four unit variants, and `Command` is an enum
+whose third variant carries a `Direction`: one, plus one, plus four. `Config`
+has a single constructor with two fields, a product: two times four. Rust
+says the same things with `enum` and `struct`, and counts them the same way.
+
+Now our two orders. The flag bag is a struct, so it multiplies. Leave the
+id aside (it's the same whatever stage the order is in) and count each
+`Option<String>` as two shapes, treating the string inside as a single value
+because we only care whether it's there. Four `bool`s and two options give:
+
+|`Order`| = 2⁴ × (1 + 1)² = **64**.
+
+`Status` is an enum, so it adds, and the `Option<PaymentId>` inside
+`Cancelled` contributes 1 + 1:
+
+|`Status`| = 1 + 1 + 1 + 1 + (1 + 1) = **6**.
+
+The arithmetic also tells you when two types are interchangeable. `Option<()>`
+has 1 + 1 = 2 values, the same as `bool`, so each converts to the other and
+back without losing anything:
+
+```rust
+pub fn to_bool(flag: Option<()>) -> bool {
+    flag.is_some()
+}
+
+pub fn from_bool(flag: bool) -> Option<()> {
+    flag.then_some(())
+}
+```
+
+Two types with equal counts can always be paired up like this. That doesn't
+make them equally *good*, which is the whole point of this chapter: `bool`
+and `Option<()>` carry the same information, but neither says what it means.
+An `enum Payment { Unpaid, Paid }` has the same count again and reads far
+better. Counting tells you whether a type has room for the wrong values;
+naming tells you what the right ones are.
+
+Functions can be counted too, though we won't need it often. A function from
+`A` to `B` has to choose one `B` for each of the |A| possible inputs, so there
+are |B| × |B| × ... = |B|^|A|^ of them. That's why mathematicians call function
+types *exponentials*. A `fn(bool) -> bool` has 2² = 4: the identity, `!`,
+always `true`, and always `false`. (This counts functions that always return
+and do nothing else. A Rust function can also panic, loop forever or print
+something, and the arithmetic doesn't see any of that. Chapter 29 takes
+that small print seriously.)
+
+> [!NOTE]
+> The algebra goes further than you might expect. If you treat a type
+> constructor as a polynomial and *differentiate* it, the result describes
+> that structure "with a hole in it": one position singled out, plus the
+> context around it. That's the shape of a **zipper**, a functional data
+> structure for moving around inside an immutable list or tree and editing
+> at a focus. Chapter 29 shows the trick; for now it's enough to know that
+> "algebraic" in *algebraic data types* is not a figure of speech.
+
 ## The lifecycle as an enum
 
 So let's rewrite the order with the arithmetic in mind. The order is in exactly
@@ -682,6 +766,9 @@ the compiler can do for you.
   for a domain with six states. The difference is where bugs live.
 - **Algebraic Data Types**: structs and tuples are products (*and*), enums are
   sums (*or*). Count a type's values to check it against the domain.
+- **Counting is arithmetic**: products multiply, sums add, `Option<T>` is
+  1 + |T|, `Result<T, E>` is |T| + |E|, and a function `A -> B` has |B|^|A|^
+  possible values.
 - **Make Illegal States Unrepresentable**: give each state its own variant,
   carrying only the data that's true in it. Invalid combinations can't be
   built, so nothing needs to check for them.

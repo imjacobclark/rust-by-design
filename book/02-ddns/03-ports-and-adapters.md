@@ -1172,6 +1172,116 @@ parser. Only the two edges are fake, and the edges are exactly the parts that
 have their own tests against `wiremock`. Between the two kinds of test, every
 piece is covered, and not one of them needs a network or a Cloudflare account.
 
+## Capabilities in the signature
+
+Step back and read `Reconciler`'s type once more: `Reconciler<V4, V6, D>`,
+where `V4` is an IPv4 source, `V6` an IPv6 source and `D` a DNS provider.
+That's a list of everything the application is *able* to do to the outside
+world. It can ask for addresses and it can read and change DNS records. It
+isn't handed a clock, a mailer, a database or a filesystem. If a reviewer
+wants to know whether a tick could ever send an email, the type parameters
+give a quick first answer.
+
+This is an old idea from security engineering, sometimes called
+**capability-based design**: instead of letting code reach out and grab
+whatever it likes (*ambient authority*: any function can open any file or
+socket, because the operating system lets the process do so), you hand each
+piece of code the specific capabilities it needs, as values, and nothing
+else. Ports are capabilities in exactly that sense.
+
+### Haskell writes effects in the type
+
+Some Haskell libraries take this much further. In *effect systems* such as
+Polysemy, each kind of interaction with the world is declared as an *effect*,
+and a function's type lists the effects it uses. Our two ports would look
+roughly like this:
+
+```haskell
+data DnsProvider m a where
+  Records :: DnsName -> DnsProvider m [DnsRecord]
+  Update  :: RecordId -> Address -> DnsProvider m ()
+makeSem ''DnsProvider
+
+tick :: Members '[IpSource, DnsProvider] r => DnsName -> Sem r ()
+tick name = do
+  current <- currentAddress
+  found   <- records name
+  mapM_ (\r -> update (recordId r) current)
+        (filter (\r -> address r /= current) found)
+```
+
+The first block declares the `DnsProvider` effect with two operations, rather
+like our trait's methods (`IpSource` is declared the same way), and
+`makeSem` generates the functions `records` and `update` from it. The
+interesting line is `tick`'s type. `Sem r ()` is "a computation that
+performs the effects in the list `r` and returns nothing", and
+`Members '[IpSource, DnsProvider] r` says that list must include an IP source
+and a DNS provider. `tick` can use those, and only those. Add a line that
+sends an email, and GHC refuses to compile it, complaining that it
+`Could not deduce 'Member Email r'`: the effect isn't in the signature, so
+it isn't available.
+
+### What Rust can and can't promise
+
+The Rust version gets the first half of that. A function that takes
+`&impl IpSource` and `&impl DnsProvider` and nothing else, or a struct like
+`Reconciler` that is generic over its ports, documents its capabilities, and
+the compiler checks that it only calls port methods that exist. But Rust
+doesn't track effects. Nothing in the language stops a function from
+reaching for ambient authority directly:
+
+```rust
+/// The signature says "an IP source, and nothing else". It isn't the
+/// whole truth.
+pub async fn observe<S: IpSource>(source: &S) -> Result<S::Addr, IpError> {
+    let address = source.current().await?;
+    let _ = std::fs::write("/tmp/last-address", address.to_string());
+    Ok(address)
+}
+```
+
+That compiles. So does a call to `reqwest::get` in the middle of the core, or
+a read of an environment variable. In Haskell, `IO` in a type marks a
+function that can do anything; a function without it can't (barring
+deliberately unsafe escape hatches). Rust has no equivalent marker: every
+function can do I/O. The capability list in our signatures is a
+*convention*, and conventions need help to hold:
+
+- **Crate and module boundaries.** If the domain and core live in a crate
+  that doesn't depend on `reqwest` or `tokio`, they can't make HTTP calls,
+  because the names aren't there. A `#![no_std]` crate goes further and
+  can't even reach `std::fs` or `std::net` without explicitly opting back in.
+- **Lints.** Clippy's `disallowed_methods` and `disallowed_types` lints,
+  configured in `clippy.toml`, can forbid specific functions or types (say,
+  `std::fs::write` or `reqwest::Client`) in a crate, so a stray call fails
+  review automatically.
+- **Capability-style libraries.** The `cap-std` crate offers versions of the
+  standard filesystem and network APIs in which you can't open an arbitrary
+  path; you can only open files relative to a directory handle (`Dir`)
+  you were given. Authority becomes a value you pass in, like our ports.
+- **Review.** In the end, a reviewer who knows the convention and spots a
+  `std::fs` in the core is the last line of defence.
+
+> [!PATTERN] Capabilities, Not Ambient Authority
+> Give each piece of code the specific capabilities it needs as values (ports,
+> handles, clients) and nothing else, so its signature lists what it can do to
+> the world. In Rust: functions and structs generic over port traits
+> (`&impl IpSource`, `Reconciler<V4, V6, D>`). Rust doesn't track effects, so
+> back the convention with crate boundaries, lints and review.
+
+### A port is not a proof
+
+One caution, and it applies to Haskell's effect types as much as to our
+traits. A capability in a signature says what code *may* do. It says nothing
+about whether it does the right thing with it. `tick` having a `DnsProvider`
+doesn't prove it updates the right record, or updates it at all, or
+eventually gets round to every record. The warning earlier in this chapter
+is a live example: `Reconciler` holds an IPv6 source, the type says so, and
+yet if IPv4 lookups keep failing, the IPv6 source is never asked. That's a
+property of behaviour over time, and the types are silent on it. Tests,
+property tests and, in TLA+ Interlude 2, a model checker are what catch
+those.
+
 > [!CHECKPOINT]
 > Your library now has `ports` (with `fallback.rs`), `adapters/ip_sources.rs`,
 > `adapters/cloudflare/{mod,dto}.rs` and `app.rs`, and two integration test
@@ -1216,6 +1326,9 @@ piece is covered, and not one of them needs a network or a Cloudflare account.
 - **Decision as Data pays off**: a dry run is one `match` arm.
 - **Fakes beat mocks** for application tests: small, honest implementations of
   the ports, with the real core in between.
+- **Capabilities, Not Ambient Authority**: generic port parameters list what
+  code can do to the world, but Rust doesn't track effects, so crate
+  boundaries, lints and review have to keep the list honest.
 
 ## Exercises
 

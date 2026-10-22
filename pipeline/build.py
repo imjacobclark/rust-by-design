@@ -120,7 +120,7 @@ def pandoc(files: list[Path], out_html: Path, *, volume: str | None, offset: int
         f"--template={PIPE / 'template.html'}",
         f"--lua-filter={PIPE / 'filters' / 'book.lua'}",
         f"--highlight-style={PIPE / 'ferris-night.theme'}",
-        f"--syntax-definition={PIPE / 'syntax' / 'tla.xml'}",
+        *(f"--syntax-definition={x}" for x in sorted((PIPE / "syntax").glob("*.xml"))),
         "--css=style.css",
         "--toc",
         "--toc-depth=2",

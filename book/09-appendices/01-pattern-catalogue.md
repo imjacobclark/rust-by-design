@@ -99,6 +99,15 @@ the existing behaviour.
 **Introduced** Ch 3 (Ch 1 previews it with `Unit::Kelvin`). **Also** Ch 15
 (a missing `evolve` arm).
 
+### Existential Packaging
+**Idea.** When a value's precise type (its state) is only known at runtime,
+package it with "some type that satisfies X", then match once to recover the
+precise type and carry that evidence inward.
+**Reach for it** when loading typestate values from storage or the network.
+**In Rust.** An enum over the typestates (`AnyTask`, `AnyPayment`), or
+`Box<dyn Trait>`; Haskell uses GADTs and existential types.
+**Introduced** Ch 14. **Also** Ch 30.
+
 ### Value Object
 **Idea.** A domain value defined entirely by its attributes, with no
 identity, immutable and always valid.
@@ -258,6 +267,16 @@ loop can't confuse a network blip with a bad API token.
 classifying method that `match`es exhaustively.
 **Introduced** Ch 11. **Also** exit codes in Ch 28.
 
+### Applicative Validation (Accumulate Errors)
+**Idea.** When checks are independent, run them all and report every failure,
+rather than stopping at the first. `?` sequences dependent steps (monadic);
+independent checks can be combined side by side (applicative).
+**Reach for it** for forms, configuration files, journals: anywhere a person
+fixes input and would rather see every problem at once.
+**In Rust.** Run each validator, combine `Result`s into `Result<T, Vec<E>>`
+(a small `both` combinator); keep `?` for steps that need earlier results.
+**Introduced** Ch 4. **Also** configuration (Ch 8), the journal reader (Ch 23).
+
 ## Behaviour and abstraction
 
 ### Traits as Contracts
@@ -287,6 +306,28 @@ types.
 **In Rust.** `trait TemperaturesExt { .. } impl TemperaturesExt for [Celsius]`; the
 orphan rule (E0117) limits what you can implement.
 **Introduced** Ch 5.
+
+### Parametricity (Constraints as Permissions)
+**Idea.** A generic function knows nothing about `T` except what its bounds
+grant, so its signature limits what it can do: `fn f<T>(Vec<T>) -> Vec<T>` can
+only drop, reorder or (with `Clone`) duplicate elements. Free theorems follow
+from the type alone.
+**Reach for it** to make signatures say less, so implementations can do less,
+especially when reviewing code you didn't write.
+**In Rust.** Generics with minimal bounds. The leaks are panics, loops, side
+effects, `size_of::<T>()` and `Any` with `T: 'static`.
+**Introduced** Ch 5.
+
+### Capabilities, Not Ambient Authority
+**Idea.** Give code only the capabilities it needs, passed in explicitly,
+instead of letting it reach anything in scope. Haskell's effect systems put
+them in the type; in Rust, trait-bound parameters document them.
+**Reach for it** at every boundary where code shouldn't be able to email,
+write files or call the network.
+**In Rust.** Ports as parameters (`&impl DnsProvider`); backed up by crate
+boundaries, clippy's `disallowed_methods`, `cap-std` and review, because Rust
+doesn't track effects. A capability in a signature is not proof of correct use.
+**Introduced** Ch 10.
 
 ### Ports and Adapters
 **Idea.** The core declares the capabilities it needs as interfaces (ports);
@@ -630,3 +671,99 @@ beside `Next == \/ Discover \/ Fetched \/ Cancel ...`; trace validation as a
 test.
 **Introduced** Interlude 6, where the spec's `ASSUME Limit > 0` exposed that
 Chapter 28's `concurrency: usize` lets a zero through (fix: `NonZeroUsize`).
+
+
+## Types as proofs
+
+Patterns from Part VIII, most of them borrowed from Haskell.
+
+### Types as Propositions (Curry–Howard)
+**Idea.** A type is a statement, and a value of that type is evidence for it:
+tuples are "and", enums are "or", functions are "implies", an empty enum is
+"false". Writing a total function is constructing a proof.
+**Reach for it** when designing signatures: if a function can't fail, say so
+with `Infallible`; if a case is impossible, make its type empty.
+**In Rust.** `(A, B)`, `Result<A, B>`, `fn(A) -> B`, `enum Void {}` with
+`match v {}`, `Infallible`. Not a proof system: `loop {}`, `panic!` and
+`todo!()` inhabit every type.
+**Introduced** Ch 29.
+
+### Lawful Abstractions (Laws as Properties)
+**Idea.** Abstractions like `map` and `and_then` come with laws (identity,
+composition, associativity). The compiler checks types, not laws; property
+tests check the laws.
+**Reach for it** whenever you write your own `map`, `and_then`, `combine` or
+monoid.
+**In Rust.** `proptest` properties such as `x.map(|v| v) == x`; clippy's
+lints quietly assume the laws.
+**Introduced** Ch 29 (a buggy `Audited::map` fails the identity law).
+
+### Type-Level Functions (Associated Types)
+**Idea.** Compute one type from another at compile time, so a field's type
+depends on a state: Haskell's type families.
+**Reach for it** when the data you hold differs by state or by kind.
+**In Rust.** `trait State { type Evidence; }` and
+`struct Payment<S: State> { evidence: S::Evidence }`.
+**Introduced** Ch 30.
+
+### Proof Token (Unforgeable Evidence)
+**Idea.** Represent "this has been checked or authorised" as a value only the
+checking code can create, and require that value to perform the action.
+**Reach for it** for authorisation, approval, validation that must happen
+before execution.
+**In Rust.** A struct with private fields minted by one function in one module
+(`Approver::approve` → `ApprovedRefund`), consumed by the action it permits.
+**Introduced** Ch 30. **Related** Parse, Don't Validate; Encapsulated
+Invariants.
+
+### Sized Types (Const Generics)
+**Idea.** Put sizes in types, so mismatched dimensions don't compile and
+size-preserving operations say so.
+**Reach for it** for fixed-width data: feature vectors, matrices, batches.
+**In Rust.** `[T; N]`, `struct Features<const N: usize>`, array `map`;
+`try_from` to package runtime data. Arithmetic like `N + 1` in types is
+unstable.
+**Introduced** Ch 30.
+
+### Indexed Protocol (Composable Typestate)
+**Idea.** Give a whole sequence of operations a type that records its start
+and end state, so steps compose only when the states line up.
+**Reach for it** for protocols with a fixed order: handshakes, payment flows,
+migrations.
+**In Rust.** `Program<From, To, Out>` with `then`, run by an interpreter; the
+interpreter must honour the description.
+**Introduced** Ch 30. **Related** Decision as Data (Ch 9), free monads.
+
+### Branded Scope
+**Idea.** Use a fresh, unnameable lifetime as a brand, so values tied to one
+scope can't be used with another, and nothing escapes the scope.
+**Reach for it** for indices or tokens that are only valid for one collection
+or session.
+**In Rust.** `fn with_batch<R>(f: impl for<'id> FnOnce(Batch<'id>) -> R)`
+with an invariant lifetime; the same idea as Haskell's `runST` and
+`thread::scope`.
+**Introduced** Ch 30. **Previewed** Ch 26.
+
+### Refinement Types and Verified Contracts
+**Idea.** Attach logical predicates to types or functions (pre- and
+postconditions) and have a solver or model checker prove the code meets them
+for every input, not just sampled ones.
+**Reach for it** for arithmetic contracts and invariants that types can't
+express: "never refund more than was captured".
+**In Rust.** Kani harnesses (`kani::any`, `kani::assume`, `assert!`), and Flux,
+Prusti, Creusot and Verus for contracts; LiquidHaskell in Haskell; Lean for
+proofs about a model.
+**Introduced** Ch 31 (Kani found an overflow in `refundable` that example
+tests and range-limited property tests missed).
+
+### The Assurance Ladder
+**Idea.** Each technique answers a different question: types (is it
+structurally permitted?), property tests (does it hold on many inputs?),
+verifiers (does this function meet its contract?), proofs (does the model have
+this property?), model checking (can a bad global state be reached?),
+integration tests (does the assembled system work?). None establishes the
+others.
+**Reach for it** when deciding how much assurance a piece of code needs, and
+which tool buys it.
+**Introduced** Ch 31: `refundable` was verified, and two workers still
+refunded twice.

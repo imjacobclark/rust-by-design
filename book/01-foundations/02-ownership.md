@@ -828,6 +828,176 @@ of them are handled the same way.
 > ownership guarantees the release happens exactly once, at the end of the
 > owner's scope, on every path out of it, including early returns and `?`.
 
+## At most once, not exactly once
+
+Moves have one more consequence that's easy to take for granted, so let's
+look at it from the outside. Back to the nightly email. Suppose the report
+becomes a value with a little lifecycle of its own: a `Draft` that can be
+polished, and then sent exactly once.
+
+```rust
+/// A nightly report that has been written but not yet sent.
+pub struct Draft {
+    body: String,
+}
+
+/// A report that has gone out.
+pub struct Sent {
+    pub recipients: usize,
+}
+
+impl Draft {
+    pub fn with_footer(self, footer: &str) -> Draft {
+        Draft { body: format!("{}\n{footer}", self.body) }
+    }
+
+    pub fn send(self, outbox: &mut Vec<String>, to: &[&str]) -> Sent {
+        for address in to {
+            outbox.push(format!("To: {address}\n{}", self.body));
+        }
+        Sent { recipients: to.len() }
+    }
+}
+```
+
+(A `Draft::new(readings)` builds the body with `report`.) Both methods take
+`self` by value, so each *consumes* the draft it's called on. Sending the
+same draft twice is the classic bug of every mail-merge script ever written,
+and here it doesn't compile:
+
+```rust
+// does not compile
+let draft = Draft::new(readings);
+draft.send(outbox, &["me@example.com"]);
+draft.send(outbox, &["you@example.com"]);
+```
+
+```text
+error[E0382]: use of moved value: `draft`
+  --> src/lib.rs:5:5
+   |
+ 3 |     let draft = Draft::new(readings);
+   |         ----- move occurs because `draft` has type `Draft`, which does
+   |               not implement the `Copy` trait
+ 4 |     draft.send(outbox, &["me@example.com"]);
+   |           --------------------------------- `draft` moved due to this
+   |                                             method call
+ 5 |     draft.send(outbox, &["you@example.com"]);
+   |     ^^^^^ value used here after move
+```
+
+This is the same E0382 that opened the chapter, but now it's doing design
+work. After `send`, the draft is gone; what you hold is a `Sent`. The stale
+state, "a draft that could still be sent", simply isn't there to misuse.
+
+### What Haskell needs an extension for
+
+It's worth knowing that this is unusual. In most languages, including very
+strongly typed ones, a value stays usable for as long as it's in scope. Here
+is the same idea in Haskell, a language we'll borrow ideas from several times
+in this book:
+
+```haskell
+data Draft = Draft String
+data Sent  = Sent String
+
+send :: Draft -> Sent
+send (Draft body) = Sent body
+
+nightly :: Draft -> (Sent, Sent)
+nightly draft = (send draft, send draft)   -- accepted: draft is still there
+```
+
+The `data` lines declare two types, each a wrapper around a `String`, rather
+like Rust's `struct Draft(String);`. Read `send :: Draft -> Sent` as "`send`
+is a function from `Draft` to `Sent`", the same as Rust's
+`fn send(draft: Draft) -> Sent`; the line below it is its body, taking the
+draft apart with a pattern. `nightly` takes a draft and returns a pair of
+receipts. Haskell values
+are immutable and garbage collected, so using `draft` twice is perfectly
+safe in memory terms, and the type checker has no reason to object. The
+double send compiles.
+
+GHC, the main Haskell compiler, can reject it, but only with an extension
+called `LinearTypes`, which adds a new kind of function arrow:
+
+```haskell
+{-# LANGUAGE LinearTypes #-}
+
+send :: Draft %1 -> Sent
+send (Draft body) = Sent body
+
+nightly :: Draft %1 -> (Sent, Sent)
+nightly draft = (send draft, send draft)   -- rejected: draft used twice
+```
+
+`%1 ->` promises that the function uses its argument *exactly once*. Using
+`draft` twice is now a type error, and so is ignoring it: a body of
+`forget _ = ()` with the type `Draft %1 -> ()` is rejected too, because the
+draft was never used at all.
+
+Type theorists have names for these two disciplines. A value that may be used
+**at most once** is *affine*. A value that must be used **exactly once** is
+*linear*. Rust's moves make every non-`Copy` value affine, by default, with no
+annotations. That's stronger than ordinary Haskell here. But Rust is not
+linear: nothing forces you to use a value at all. Watch:
+
+```rust
+pub fn quiet_night(readings: &[Reading], outbox: &mut Vec<String>) {
+    let draft = Draft::new(readings);
+    if readings.len() > 3 {
+        draft.send(outbox, &["me@example.com"]);
+    }
+}
+```
+
+On a night with three readings or fewer, `draft` is simply dropped at the
+closing brace, unsent. This compiles without a murmur. Dropping is always
+allowed; it's what made RAII work a moment ago.
+
+### `#[must_use]`: a partial answer
+
+Rust's partial tool for "you probably meant to do something with this" is
+the `#[must_use]` attribute, which you've already met indirectly: it's why
+ignoring a `Result` draws a warning. We can put it on our own type, with a
+message:
+
+```rust
+#[must_use = "a draft does nothing until it is sent"]
+pub struct Draft {
+    body: String,
+}
+```
+
+Now a draft that is produced and thrown away on the spot is noticed:
+
+```text
+warning: unused `Draft` that must be used
+ --> src/lib.rs:4:5
+  |
+4 |     draft.with_footer("-- the cupboard");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: a draft does nothing until it is sent
+```
+
+That catches the most common slip, calling a consuming method and forgetting
+that it *returns* the new value. But it's a lint about expressions whose
+value is discarded, not a guarantee about every path. `quiet_night` above
+still compiles without a warning, because `draft` was bound to a variable and
+later dropped, which `#[must_use]` doesn't track. People sometimes go further
+with a *drop bomb*: a `Drop` implementation that panics if the value wasn't
+consumed properly. That turns a forgotten send into a crash at runtime, not a
+compile error, and `std::mem::forget` can defuse it anyway. Full linearity
+isn't something Rust offers.
+
+So the honest summary is: **Rust guarantees "not twice" for free, and offers
+only hints for "not zero times".** That's still a great deal. Chapter 14 uses
+consuming methods to build *typestate*, where a `Task<Open>` turns into a
+`Task<Done>` and the open version can't be touched again, and Chapter 30
+returns to the affine/linear distinction when a payment must be captured or
+refunded, never both.
+
 > [!CHECKPOINT]
 > If you've been typing along, this chapter's code lives in
 > `src/ch02_ownership.rs`, registered in `src/lib.rs` with
@@ -864,6 +1034,9 @@ of them are handled the same way.
   borrows from.
 - **RAII**: `Drop` ties cleanup to ownership, so it runs exactly once on every
   path out of a scope.
+- **Moves make values affine** (usable at most once), so a consuming method
+  leaves no stale state behind. Rust isn't linear: values can be dropped
+  unused, and `#[must_use]` only catches some of those.
 
 ## Exercises
 

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language>
+<!-- Minimal Lean 4 highlighting for the book (KDE format). Use ```lean fences. -->
+<language name="Lean" section="Scientific" version="1" kateversion="5.0"
+          extensions="*.lean" casesensitive="1" license="MIT">
+  <highlighting>
+    <list name="keywords">
+      <item>theorem</item><item>lemma</item><item>def</item><item>example</item>
+      <item>abbrev</item><item>inductive</item><item>structure</item><item>class</item>
+      <item>instance</item><item>where</item><item>deriving</item><item>namespace</item>
+      <item>section</item><item>end</item><item>open</item><item>import</item>
+      <item>variable</item><item>universe</item><item>fun</item><item>let</item>
+      <item>have</item><item>show</item><item>from</item><item>match</item><item>with</item>
+      <item>if</item><item>then</item><item>else</item><item>do</item><item>by</item>
+      <item>at</item><item>calc</item><item>termination_by</item><item>decreasing_by</item>
+      <item>private</item><item>protected</item><item>noncomputable</item><item>partial</item>
+      <item>axiom</item><item>sorry</item>
+    </list>
+    <list name="tactics">
+      <item>intro</item><item>intros</item><item>exact</item><item>apply</item>
+      <item>rfl</item><item>simp</item><item>simp_all</item><item>omega</item>
+      <item>induction</item><item>cases</item><item>rcases</item><item>obtain</item>
+      <item>constructor</item><item>rw</item><item>unfold</item><item>split</item>
+      <item>contradiction</item><item>exfalso</item><item>assumption</item>
+      <item>decide</item><item>trivial</item><item>linarith</item><item>left</item>
+      <item>right</item><item>exists</item><item>refine</item><item>case</item>
+      <item>next</item><item>all_goals</item><item>repeat</item><item>first</item>
+    </list>
+    <list name="types">
+      <item>Prop</item><item>Type</item><item>Sort</item><item>Nat</item><item>Int</item>
+      <item>List</item><item>Bool</item><item>True</item><item>False</item>
+      <item>Option</item><item>String</item><item>And</item><item>Or</item><item>Not</item>
+      <item>Iff</item><item>Eq</item>
+    </list>
+    <contexts>
+      <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="BlockComment" char="/" char1="-"/>
+        <Detect2Chars attribute="Comment" context="LineComment" char="-" char1="-"/>
+        <DetectChar attribute="String" context="String" char="&quot;"/>
+        <RegExpr attribute="Keyword" context="DefName" String="\b(theorem|lemma|def|abbrev|inductive|structure)\b"/>
+        <keyword attribute="Keyword" String="keywords"/>
+        <keyword attribute="Tactic" String="tactics"/>
+        <keyword attribute="Type" String="types"/>
+        <RegExpr attribute="Operator" String="[∧∨¬→←↔∀∃λ⟨⟩≠≤≥×∘]|:=|=&gt;|-&gt;|&lt;-|::|\+\+|\|"/>
+        <Int attribute="Number"/>
+      </context>
+      <context name="DefName" attribute="Normal Text" lineEndContext="#pop">
+        <RegExpr attribute="Definition" context="#pop" String="\s*[A-Za-z_][A-Za-z0-9_'.]*"/>
+      </context>
+      <context name="LineComment" attribute="Comment" lineEndContext="#pop"/>
+      <context name="BlockComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="#pop" char="-" char1="/"/>
+      </context>
+      <context name="String" attribute="String" lineEndContext="#pop">
+        <DetectChar attribute="String" context="#pop" char="&quot;"/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text" defStyleNum="dsNormal"/>
+      <itemData name="Keyword" defStyleNum="dsKeyword"/>
+      <itemData name="Tactic" defStyleNum="dsControlFlow"/>
+      <itemData name="Type" defStyleNum="dsDataType"/>
+      <itemData name="Definition" defStyleNum="dsFunction"/>
+      <itemData name="Operator" defStyleNum="dsOperator"/>
+      <itemData name="Number" defStyleNum="dsDecVal"/>
+      <itemData name="String" defStyleNum="dsString"/>
+      <itemData name="Comment" defStyleNum="dsComment"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="--"/>
+      <comment name="multiLine" start="/-" end="-/"/>
+    </comments>
+    <keywords casesensitive="1"/>
+  </general>
+</language>

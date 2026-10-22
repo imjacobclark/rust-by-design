@@ -289,6 +289,46 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
+## Types that carry proofs (Chapters 14, 21, 29, 30)
+
+```rust
+pub enum Void {}                               // no values: logical falsehood
+pub fn absurd<T>(v: Void) -> T { match v {} } // from nothing, anything
+
+// Infallible is the standard library's empty type
+pub fn parse_ok(s: &str) -> Result<String, Infallible> { Ok(s.to_owned()) }
+
+mod sealed { pub trait Sealed {} }            // a trait outsiders can't implement
+pub trait State: sealed::Sealed { type Evidence; } // associated type
+impl State for Captured { type Evidence = u64; }   // a type-level function
+
+pub struct Payment<S: State> { evidence: S::Evidence, _s: PhantomData<S> }
+
+#[must_use = "an authorised payment must be captured or voided"]
+pub struct Authorised;
+
+pub struct Matrix<const H: usize, const W: usize>([[f32; W]; H]); // const generics
+pub fn embed(v: &[f32]) -> Option<[f32; 768]> { v.try_into().ok() }
+
+// higher-ranked trait bound: works for every lifetime 'a
+pub fn apply_to_all<F>(f: F) where F: for<'a> Fn(&'a str) -> &'a str {}
+
+pub fn positive(n: u64) -> Option<NonZeroU64> { NonZeroU64::new(n) }
+```
+
+| Haskell | Rust |
+|---|---|
+| `data Void` / `absurd` | `enum Void {}` / `match v {}`, `Infallible`, `!` |
+| `newtype` | tuple struct newtype (`#[repr(transparent)]` for layout) |
+| phantom type parameter | `PhantomData<T>` |
+| `DataKinds` + typestate | marker types + sealed trait |
+| type family | associated type on a trait |
+| GADT / existential | enum over typestates, or `Box<dyn Trait>` |
+| `Vec (n :: Nat) a` | const generics `[T; N]` |
+| `forall s.` in `runST` | lifetimes, `for<'a>`, `thread::scope`, branded lifetimes |
+| linear types `%1 ->` | ownership (affine: at most once) + `#[must_use]` |
+| `Functor` / `Monad` | per-type `map` / `and_then` and `?` (no higher-kinded types) |
+
 ## Macros you'll meet
 
 | Macro | Does |

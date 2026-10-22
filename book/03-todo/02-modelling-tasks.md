@@ -784,6 +784,107 @@ it.
 > are plain enums with plain data, and they serialise without any of this
 > friction.
 
+### A name for the trick: existential packaging
+
+`AnyTask` looks like a workaround, a concession typestate had to make to
+collections. It's actually a well-known technique with a name, and seeing
+it from another language makes it easier to spot when you need it again.
+
+Haskell can express typestate directly. With a couple of extensions, a
+`Task` can be indexed by its state, and each constructor says which state it
+builds:
+
+```haskell
+data State = Open | Done
+
+data Task (s :: State) where
+  OpenTask :: Title -> Task 'Open
+  DoneTask :: Title -> Day -> Task 'Done
+
+completedOn :: Task 'Done -> Day
+completedOn (DoneTask _ day) = day
+```
+
+Read `Task (s :: State)` as Rust's `Task<S>`, except that `S` can only be one
+of the two `State` values, lifted to the type level (the `'` in `'Open` marks
+that). This kind of declaration, where each constructor fixes the type
+parameter, is a **GADT**, a *generalised algebraic data type*. `completedOn`
+accepts only `Task 'Done`, just as ours exists only on `Task<Done>`.
+
+Haskell then hits our wall: a task loaded from disk is open or done, and we
+don't know which until we look. Its answer is this:
+
+```haskell
+data SomeTask where
+  SomeTask :: Task s -> SomeTask
+
+describe :: SomeTask -> String
+describe (SomeTask task) = case task of
+  OpenTask title   -> "[ ] " ++ title
+  DoneTask title _ -> "[x] " ++ title ++ " (" ++ completedOn task ++ ")"
+```
+
+`SomeTask` wraps a `Task s` for *some* state `s`, and deliberately forgets
+which: the `s` doesn't appear in `SomeTask`'s own type. That's an
+**existential type**: "there exists a state such that this is a task in it".
+To use one, you unwrap it and `case` on the constructor, and the type checker
+learns the state from the constructor it matched. In the `DoneTask` branch it
+knows `task` is a `Task 'Done`, so `completedOn task` is allowed, with no
+runtime check and no cast.
+
+`AnyTask` is exactly that pattern, in Rust's vocabulary. Wrapping a
+`Task<Open>` in `AnyTask::Open` packages it up and hides the state from the
+type; matching on the variant unpacks it and hands back the precise type.
+There's one real difference. Haskell's `SomeTask` needs only one
+constructor, because matching on the GADT's own constructors is what reveals
+the state. Rust has no GADTs, so matching on a `Task<S>` can't tell you what
+`S` is; the enum does that job instead, with one variant per state. Either
+way, the rest of the program can work with a single type, and any code
+that needs the state asks for it once, with a `match`.
+
+That suggests a habit worth building: unpack *early*, and let the precise
+type flow inwards. Here's the list of open tasks, unpacked once:
+
+```rust
+/// Unpack the open tasks. Everything downstream knows they're open.
+pub fn open_tasks<'a>(
+    tasks: impl IntoIterator<Item = &'a AnyTask>,
+) -> impl Iterator<Item = &'a Task<Open>> {
+    tasks.into_iter().filter_map(|task| match task {
+        AnyTask::Open(open) => Some(open),
+        AnyTask::Done(_) => None,
+    })
+}
+```
+
+After that, "which tasks are overdue?" is
+`open_tasks(tasks.values()).filter(|t| t.is_overdue(today))`, and
+`is_overdue` needs no check because its argument's type is the evidence. This
+is the same shape as *Parse, Don't Validate* from Chapter 4: the untrusted,
+loosely typed value (from disk, from the user, from a map of mixed tasks) is
+examined once at a boundary, and from then on, the types carry what was
+learned.
+
+Rust has a second kind of existential, and we've already met it: a trait
+object. `Box<dyn Describe>` (for some trait `Describe` that both task types
+implement) is also "some type, I won't say which", but it hides the type for
+good: you can call the trait's methods, and you can't match to get a
+`Task<Done>` back. Use `dyn` when callers should only ever need the shared
+behaviour, and an enum like `AnyTask` when they'll need to recover the
+precise type.
+
+> [!PATTERN] Existential Packaging
+> When a value's precise type (often a typestate) is only known at runtime,
+> package it in a single type that hides the type parameter, and unpack it
+> with a `match` that restores the precise type in each branch. Validate at
+> the boundary, then carry the evidence inward. In Rust: an enum with one
+> variant per state (`AnyTask`), or `Box<dyn Trait>` when only shared
+> behaviour is needed.
+
+Chapter 30 gives this pattern the full treatment, for payments that move
+from created to authorised to captured, where the evidence carried by each
+state matters a great deal more than a completion date.
+
 ## The design we keep
 
 Putting it together, `tdo`'s model has two layers, each doing the job it's good
@@ -885,6 +986,8 @@ and all forgotten.
   `PhantomData` is for states that carry none.
 - **Typestate stops at runtime boundaries.** Collections, files and user input
   need a sum type (`AnyTask`); matching on it hands you back the typestate.
+- **Existential Packaging** is the name for that move: hide the state in one
+  type, unpack it once at the boundary, and let the precise type flow inwards.
 - **In-place mutation fights consuming transitions** (E0507); taking the value
   out, transforming it, and putting it back works with them.
 

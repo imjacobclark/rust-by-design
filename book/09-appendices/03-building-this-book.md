@@ -72,6 +72,7 @@ and passes that count to pandoc's `--number-offset`.
 | To change | Edit |
 |---|---|
 | Code colours | `pipeline/ferris-night.theme` (skylighting JSON: one entry per token kind) |
+| Extra languages | `pipeline/syntax/*.xml`: KDE syntax definitions for TLA+/PlusCal (` ```tla `) and Lean 4 (` ```lean `), loaded automatically |
 | Page size, margins, footers | the `@page` rules at the top of `style.css` |
 | Fonts | `@font-face` rules in `style.css`, files in `pipeline/vendor/fonts` |
 | Callout colours | the `--note`, `--pattern`, ... variables in `style.css` |

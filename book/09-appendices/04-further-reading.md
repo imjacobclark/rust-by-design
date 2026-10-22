@@ -42,6 +42,39 @@ at.
 - ***Type-Driven Development with Idris*** (Edwin Brady). Takes "the compiler as
   design partner" much further than Rust can, and is illuminating for that reason.
 
+## Haskell and type-level design
+
+- ***Thinking with Types*** (Sandy Maguire). Type-level programming in Haskell:
+  kinds, data kinds, type families, GADTs, existentials. The book behind most of
+  Chapter 30's ideas.
+- ***Theorems for Free!*** (Philip Wadler, 1989), the paper on parametricity, and
+  ***Propositions as Types*** (Wadler, 2015), the most readable account of
+  Curry–Howard (Chapter 29).
+- ***Ghosts of Departed Proofs*** (Matt Noonan, 2018). Proof tokens and
+  unforgeable evidence in an ordinary language, closely related to Chapter 30's
+  approach.
+- ***Haskell Programming from First Principles*** (Allen and Moronuki) if you
+  want to learn Haskell itself properly.
+- ***Types and Programming Languages*** (Benjamin Pierce). The textbook on type
+  systems, for when you want the theory underneath.
+- ***GhostCell: Separating Permissions from Data in Rust*** (Yanovski et al.,
+  ICFP 2021). Branded lifetimes, Rust's answer to `runST`.
+
+## Verification beyond types
+
+- ***The LiquidHaskell documentation and tutorial*** (ucsd-progsys.github.io).
+  Refinement types in practice.
+- ***The Kani Rust Verifier*** book (model-checking.github.io/kani), and the
+  documentation for **Verus**, **Flux**, **Prusti** and **Creusot**: the Rust
+  verifiers surveyed in Chapter 31.
+- ***Theorem Proving in Lean 4*** and ***Functional Programming in Lean***, both
+  free at lean-lang.org. Where to go after Chapter 31's proofs.
+- **Aeneas** and **hax**: tools that translate Rust into Lean, F* or Coq/Rocq
+  so proofs are about the real code rather than a hand-written model, which
+  narrows the gap Chapter 31 describes.
+- ***Software Foundations*** (Pierce et al.), free online. Logic, proof and
+  programming-language semantics, in Coq/Rocq; slow and wonderful.
+
 ## TLA+ and formal methods
 
 - ***The TLA+ Video Course*** (Leslie Lamport), free at lamport.azurewebsites.net.

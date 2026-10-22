@@ -664,6 +664,158 @@ So the book's rule, which every project from Part II onwards follows:
 > do, that's a sign the decision belongs in a layer that still has a typed
 > error. `anyhow` is for the end of the line.
 
+## Every problem at once
+
+Here's a line from a sensor that has had a bad night:
+
+```text
+ , NaN
+```
+
+Two things are wrong with it: the room is empty *and* the temperature isn't a
+number. `parse_reading` tells us about the first and stops. Fix the room, run
+it again, and only then do we hear about the temperature. For one line that's
+a mild annoyance. For a configuration file with a dozen fields, or a web form,
+it's the experience everyone hates: submit, fix one thing, submit, fix the
+next.
+
+The reason is `?`. Each `?` says "if this failed, stop here", which is exactly
+right when a later step *needs* the result of an earlier one. We can't trim
+the room until `split_once` has found the comma, so the separator check
+really must come first. But once the line is split, checking the room and
+checking the temperature are **independent**: neither needs the other's
+answer. There's no reason to stop after the first.
+
+### Two ways to combine checks
+
+Haskell draws this distinction sharply, and it's worth seeing there because
+the names are useful. Here is an order being checked two ways, with three
+validators that each inspect an input `i`:
+
+```haskell
+-- Either: stops at the first failure, like Rust's `?`
+checkOrder :: Input -> Either OrderError Order
+checkOrder i = do
+  customer <- validateCustomer i
+  amount   <- validateAmount i
+  currency <- validateCurrency i
+  pure (Order customer amount currency)
+
+-- Validation: runs all three, keeps every failure
+validateOrder :: Input -> Validation [OrderError] Order
+validateOrder i =
+  Order <$> validateCustomer i
+        <*> validateAmount   i
+        <*> validateCurrency i
+```
+
+`Either e a` is Haskell's `Result<A, E>`, with `Left` for errors and `Right`
+for success. The `do` block reads like a sequence of `let x = f()?;` lines,
+and behaves like one: the first `Left` ends it. Because each step *could* use
+the values bound before it, Haskell has no choice but to stop. This style of
+sequencing, where later steps may depend on earlier results, is called
+**monadic**, and `?` is Rust's version of it.
+
+The second form is different in kind. `Order <$> a <*> b <*> c` means "apply
+the `Order` constructor to the results of `a`, `b` and `c`". None of the
+three validators can see another's result; they're arguments side by side.
+That's called **applicative** combination, and because the steps are
+independent, the type doing the combining is free to run them all.
+`Validation` (from a small Haskell library of the same name) does exactly
+that: if any fail, it collects all of their errors into the list.
+
+### Applicative validation in Rust
+
+Rust has no `<*>`, but it doesn't need one. The idea is just: compute each
+independent result, *then* look at them together. First, split the existing
+checks into small functions, one per field:
+
+```rust
+fn room(text: &str) -> Result<String, ParseError> {
+    let room = text.trim();
+    if room.is_empty() {
+        return Err(ParseError::EmptyRoom);
+    }
+    Ok(room.to_string())
+}
+```
+
+`temperature(text) -> Result<Celsius, ParseError>` is the number parsing and
+`Celsius::new` from `parse_reading`, moved into a function of its own. Then a
+small generic combinator that takes two results and keeps every error:
+
+```rust
+/// Combine two independent results, keeping *every* error.
+pub fn both<A, B, E>(
+    a: Result<A, E>,
+    b: Result<B, E>,
+) -> Result<(A, B), Vec<E>> {
+    match (a, b) {
+        (Ok(a), Ok(b)) => Ok((a, b)),
+        (a, b) => Err(a.err().into_iter().chain(b.err()).collect()),
+    }
+}
+```
+
+If both succeeded, we get both values. Otherwise, `.err()` turns each
+`Result` into an `Option` of its error, and chaining the two options together
+gathers whichever errors there were, one or two, into a `Vec`.
+
+Now the parser uses `?` for the step that really is sequential, and `both`
+for the two that aren't:
+
+```rust
+/// Like `parse_reading`, but reports every problem with the line.
+pub fn parse_reading_all(line: &str) -> Result<Reading, Vec<ParseError>> {
+    let (room_text, value_text) = line
+        .split_once(',')
+        .ok_or_else(|| vec![ParseError::MissingSeparator])?;
+    both(room(room_text), temperature(value_text))
+        .map(|(room, temperature)| Reading { room, temperature })
+}
+```
+
+The last two lines are the Rust spelling of `Reading <$> room <*> temperature`:
+run both checks, and if they both succeed, build the reading from their
+results. And the bad night's line now gets a complete answer:
+
+```rust
+#[test]
+fn reports_every_problem() {
+    assert_eq!(
+        parse_reading_all(" , NaN"),
+        Err(vec![
+            ParseError::EmptyRoom,
+            ParseError::Temperature(TemperatureError::NotFinite),
+        ])
+    );
+}
+```
+
+The return type is honest about the policy, too. `Result<Reading,
+Vec<ParseError>>` says "a reading, or a list of everything wrong with it". (A
+pickier type would say *non-empty* list, since `Err(vec![])` makes no sense;
+some crates provide a `NonEmpty` vector for exactly that.)
+
+`both` handles two checks. For three or more, you can nest it, or write the
+same idea once as a small `Validation` type whose combining method appends
+error lists; either way it's a dozen lines, written once.
+
+> [!PATTERN] Applicative Validation (Accumulate Errors)
+> When several checks are independent of each other, run all of them and
+> collect every failure, instead of stopping at the first with `?`. Keep `?`
+> for steps that need an earlier step's result. In Rust: return
+> `Result<T, Vec<E>>`, compute each independent `Result` first, then combine
+> them with a small helper (or a `Validation` type) that keeps every `Err`.
+
+Which to use is a question about the *reader of the errors*. A program
+deciding what to do next usually wants the first error, and `?` gives it
+that. A person fixing a file wants all of them. You'll see this again:
+Chapter 8 validates the DDNS daemon's configuration file, and one of its
+exercises turns the first-error version into one that reports every problem;
+and the ledger's journal reader in Chapter 23 keeps going after a bad
+transaction and returns every error, each with its line number.
+
 ## Panics are for bugs
 
 There's one more way for a Rust program to fail. `panic!` stops the current
@@ -724,6 +876,9 @@ bug is to stop loudly and fix the code.
 - **Error Translation at Boundaries**: one error type per layer, wrap the inner
   error as the source, add the context only that layer knows with `map_err`.
 - **`anyhow`** is for the shell: add context and print the whole chain.
+- **Applicative Validation**: `?` stops at the first error, which is right
+  when steps depend on each other; independent checks can all run, returning
+  `Result<T, Vec<E>>` with every problem.
 - **Panics are for bugs**, not for anything the outside world can trigger.
   Prefer `expect` with a reason to a bare `unwrap`.
 

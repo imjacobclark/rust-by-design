@@ -76,7 +76,7 @@ Appendices start with `# Appendix A: Title`.
 
 ### Code blocks
 
-- Always tag the language: `rust`, `toml`, `nix`, `sh`, `text`, `json`, `diff`, `ini`, `lua`.
+- Always tag the language: `rust`, `toml`, `nix`, `sh`, `text`, `json`, `diff`, `ini`, `lua`, `tla`, `lean`, `haskell`, `sql`.
 - To show a filename tab, make the **first line** a comment
   `// file: src/domain/ip.rs` (or `# file: Cargo.toml` / `# file: flake.nix`).
   The pipeline strips that line and renders a tab. Use it whenever the reader
@@ -326,7 +326,37 @@ Chapter numbers below are the book-wide numbers the pipeline will assign.
   `Semaphore`, `JoinSet`, `CancellationToken`, timeouts; per-host politeness;
   reporting; testing with a fake fetcher.
 
-### `08-appendices`
+### `08-proofs`: Part VIII: Types as Proofs (the `pay` payment core)
+Inspired by Haskell's type system (source notes: Haskell article supplied by the
+user). Each chapter shows the Haskell idea briefly, then what Rust can and can't
+express, honestly.
+- `00-part.md`
+- `01-types-as-propositions.md`: **Ch 29**: the algebra of types (cardinality,
+  `Option` = 1 + T, functions as exponentials, zippers as derivatives in a
+  note); Curry–Howard (tuples ∧, enums ∨, `fn` →, `!`/`Infallible`/empty enums
+  ⊥, `match v {}`); why Rust isn't a proof system (`loop`, `panic!`, `todo!`);
+  kinds and the missing higher-kinded types (GATs as a partial answer);
+  `map`/`and_then`/`?` as functor and monad; laws checked with `proptest`.
+- `02-state-machines-in-the-type-system.md`: **Ch 30**: payments
+  `Created → Authorised → Captured → Refunded`; sealed state traits; associated
+  types as type families (`S::Evidence`); allowed transitions as trait impls;
+  proof tokens (unforgeable evidence types); existential packaging revisited;
+  const generics for sized data; an indexed protocol type
+  (`Program<From, To, Out>`); branded scopes; affine vs linear.
+- `03-beyond-the-type-checker.md`: **Ch 31**: refinement types (the
+  LiquidHaskell idea) and Rust's verifiers (Kani, Flux, Prusti, Creusot, Verus);
+  structural induction; machine-checked proofs in Lean 4; the double refund that
+  types can't prevent (TLA+); the assurance ladder.
+- `04-afterword.md`: **Afterword** (moved here from Part VII).
+
+### Haskell ideas woven into earlier chapters
+Short additions (500–1,500 words each), fitted into the existing flow:
+Ch 2 (affine vs linear), Ch 3 (counting states algebraically), Ch 4
+(applicative validation), Ch 5 (parametricity and free theorems), Ch 10
+(capabilities vs effect rows), Ch 14 (existential packaging), Ch 26
+(`thread::scope` as Rust's `runST`).
+
+### `09-appendices`
 - `01-pattern-catalogue.md`: **Appendix A: Pattern catalogue**
 - `02-syntax-quick-reference.md`: **Appendix B: Rust syntax quick reference**
 - `03-building-this-book.md`: **Appendix C: Building this book**
@@ -469,6 +499,19 @@ from Chapter 3"). If you need a pattern not on this list, add it here.
 | 57 | Atomicity by Labels (PlusCal) | Interlude 4 |
 | 58 | Small-Scope Model Checking | Interlude 5 |
 | 59 | Spec–Code Correspondence | Interlude 6 |
+| 60 | Applicative Validation (Accumulate Errors) | Ch 4 |
+| 61 | Parametricity (Constraints as Permissions) | Ch 5 |
+| 62 | Capabilities, Not Ambient Authority | Ch 10 |
+| 63 | Existential Packaging | Ch 14 |
+| 64 | Types as Propositions (Curry–Howard) | Ch 29 |
+| 65 | Lawful Abstractions (Laws as Properties) | Ch 29 |
+| 66 | Type-Level Functions (Associated Types) | Ch 30 |
+| 67 | Proof Token (Unforgeable Evidence) | Ch 30 |
+| 68 | Sized Types (Const Generics) | Ch 30 |
+| 69 | Indexed Protocol (Composable Typestate) | Ch 30 |
+| 70 | Branded Scope | Ch 30 |
+| 71 | Refinement Types and Verified Contracts | Ch 31 |
+| 72 | The Assurance Ladder | Ch 31 |
 
 ## 8. Checklist before you call a chapter done
 

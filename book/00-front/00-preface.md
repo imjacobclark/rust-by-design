@@ -62,7 +62,7 @@ love, skim it or skip it. The rest of the book doesn't depend on your editor.
 
 ## The projects
 
-After the workshop and a short foundations part, the book is six projects. Each
+After the workshop and a short foundations part, the book is seven projects. Each
 is a real, runnable program that you build yourself, chapter by chapter.
 
 | Part | Project | What you'll build | Where the design focus is |
@@ -75,8 +75,21 @@ is a real, runnable program that you build yourself, chapter by chapter.
 | V | `ledger` | A double-entry bookkeeping engine and CLI | Money types, phantom types, aggregates and invariants, reports as folds |
 | VI | `logq` | A fast streaming log query tool with its own query language | Lifetimes and zero-copy parsing, parser combinators, interpreters, streaming aggregation |
 | VII | `linkcheck` | A concurrent website link checker | `Send` and `Sync`, actors, backpressure, structured cancellation |
+| VIII | `pay` | The core of a payment processor | Types as propositions, typestate and type-level rules, proof tokens, refinement types, machine-checked proofs |
 
 The projects get harder as you go, and later parts assume the earlier ones.
+
+## Borrowing from Haskell
+
+Many of the book's ideas were worked out first in Haskell, whose type system
+goes further than most: types as logical propositions, state machines
+checked by the compiler, effects in the type, refinement types that check
+arithmetic contracts. Where one of those ideas helps, the chapters show it in
+a few lines of Haskell (explained from scratch; you don't need to know the
+language) and then do it in Rust, saying honestly where Rust can and can't
+follow. Part VIII gathers the deepest of them in one place and ends at the
+edge of the type checker, where refinement types, proofs in Lean and model
+checking take over.
 
 ## The TLA+ strand
 
